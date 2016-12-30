@@ -3,46 +3,46 @@ package scraper;
 import java.io.File;
 
 public class Add {
-	private String title;
-	private String texte;
-	private String ville;
+	private Title title;
+	private Texte texte;
+	private Commune commune;
 	private File image;
 	
-	public Add(String title, String texte, String ville, File image) {
+	public Add(Title title, Texte texte, Commune commune, File image) {
 		super();
 		this.title = title;
 		this.texte = texte;
-		this.ville = ville;
+		this.commune = commune;
 		this.image = image;
 	}
 	
 	public String toString(){
-		String retour = title + "\n" + texte + "\n" + ville + "\n" + image.getPath();
+		String retour = title.getTitre() + "\n" + texte + "\n" + commune.getNomCommune() + "\n" + image.getPath();
 		return retour;
 	}
 
-	public String getTitle() {
+	public Title getTitle() {
 		return title;
 	}
 
-	public void setTitle(String title) {
+	public void setTitle(Title title) {
 		this.title = title;
 	}
 
-	public String getTexte() {
+	public Texte getTexte() {
 		return texte;
 	}
 
-	public void setTexte(String texte) {
+	public void setTexte(Texte texte) {
 		this.texte = texte;
 	}
 
-	public String getVille() {
-		return ville;
+	public Commune getCommune() {
+		return commune;
 	}
 
-	public void setVille(String ville) {
-		this.ville = ville;
+	public void setCommune(Commune commune) {
+		this.commune = commune;
 	}
 
 	public File getImage() {
@@ -52,6 +52,8 @@ public class Add {
 	public void setImage(File image) {
 		this.image = image;
 	}
+
+	
 	
 	
 }

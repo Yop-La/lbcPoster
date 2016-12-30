@@ -7,21 +7,24 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 import exception.HomeException;
-import scraper.AgentLBC;
+import fr.doodle.dao.CompteLbcDao;
+import scraper.AgentLbc;
+import scraper.CompteLbc;
+import scraper.Source;
+import service.ObjectManager;
+import service.PrintManager;
 import util.Console;
 
 public class MoteurConsole {
 
-	AgentLBC agentLBC;
+	ObjectManager manager;
+	PrintManager printManager;
 
 	public static void main(String[] args) {
-		
+
 		MoteurConsole console = new MoteurConsole();
 		console.acceuil();
-		
-	
 
-		
 
 	}
 
@@ -29,6 +32,8 @@ public class MoteurConsole {
 	// Procédure qui permet d'afficher le type de sondage choisi par
 	// l'utilisateur
 	public void acceuil() {
+		manager = new ObjectManager();
+		printManager = new PrintManager(manager);
 		System.out.println("------------------------------------");
 		System.out.println("------- BIENVENUE ADDS MANAGER ------");
 		System.out.println("------------------------------------");
@@ -42,7 +47,7 @@ public class MoteurConsole {
 			System.out.println("----------    ACCUEIL    -----------");
 			System.out.println();
 			System.out.println("1 : Publier des annonces");
-			System.out.println("2 : ...");
+			System.out.println("2 : Ajouter un nouveau compte LBC");
 			System.out.println();
 			String saisie = Console.readString("Que voulez vous faire ?");
 			// Enregistrement du choix de l'utilisateur dans numéro
@@ -56,7 +61,11 @@ public class MoteurConsole {
 				}
 				break;
 			case "2":
-				System.out.println("nothing ...");
+				try {
+					addNewCompteLbc();
+				} catch (HomeException homeException) {
+					continueBoucle = true;
+				}
 				break;
 
 			case "ESC":
@@ -72,22 +81,223 @@ public class MoteurConsole {
 		}
 	}
 
+	private void addNewCompteLbc() throws HomeException {
+		String mail = readConsoleInput("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$", "Entrez le mail du compte LBC à ajouter",
+				"Votre réponse", "doit être une adresse mail");
+		String password = readConsoleInput(".{3,}", "Entrez le password du compte LBC à ajouter",
+				"Votre réponse", "doit être faire plus de 3 caractères");
+		CompteLbc compteToAdd = new CompteLbc(mail, password);
+		CompteLbcDao compteLbcDao = new CompteLbcDao();
+		compteLbcDao.save(compteToAdd);
+
+	}
+
+
 	private void publishAdd() throws HomeException{
+		System.out.println("------    MENU DE PUBLICATION DES ANNONCES   ------");
+		choixDunCompte();
 		String nbAnnonces = readConsoleInput("^[1-9]\\d*$", "Entrez le nb d'annonces à publier",
 				"Votre réponse", "doit être un entier positif");
-		String path = readConsoleInput("^mine$|client", "Entrez le répertoire des annonces",
-				"Votre réponse", "doit être mine ou client");
-		String mail = readConsoleInput(".*", "Entrez l'adresse mail du comte",
-				"Votre réponse", "doit être un mail");
-		String mdp = readConsoleInput(".*", "Entrez le mdp de LBC",
-				"Votre réponse", "doit être un mdp LBC");
+		manager.createAgentLbc(Integer.parseInt(nbAnnonces));
+		manager.createAddsGenerator();
+		selectionTitres();
+		selectionTextes();
+		selectionCommunes();
 		
-		agentLBC = new AgentLBC(path, Integer.parseInt(nbAnnonces),mail,mdp);
-		agentLBC.publish();
+		System.out.println("Démarrage de la publication ...");
+		manager.lancerPublication();
+
+		//String numDepart = readConsoleInput("^[1-9]\\d*$", "Entrez le numéro de l'annonce de départ",
+		//		"Votre réponse", "doit être un mdp LBC");
 	}
 
 
 
+	private void selectionCommunes() throws HomeException{
+		String renouvellez;
+		do{
+			String strTypeSource = selectSource("communes");
+			manager.setCommuneSourceType(strTypeSource);
+
+			switch (manager.getCommuneSourceType()) {
+			case SQL:
+				selectionCommuneSql();
+				break;
+			case XLSX:
+				selectionCommuneXlsx();	
+				break;
+			}
+			manager.setcommunes();
+			// on affiche les titres choisies pour vérification de la part de l'utilisateur 
+			System.out.println(printManager.communeToString());
+			renouvellez = readConsoleInput("^oui|non", "Est ce bien les communes ci dessus que vous voulez utiliser ?",
+					"Votre réponse", "doit être oui ou non");
+		}while(renouvellez.equals("non"));
+
+	}
+
+
+	private void selectionCommuneXlsx() {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	private void selectionCommuneSql() throws HomeException{
+		String renouvellez;
+		int bornInf;
+		int bornSup ;
+		do{
+			bornInf = Integer.parseInt(readConsoleInput("[0-9]\\d*", "Saisir la borne inférieur de population des communes à choisir :",
+					"Votre réponse", "doit être un entier positive"));
+			bornSup = Integer.parseInt(readConsoleInput("[0-9]\\d*", "Saisir la borne supérieure de population des communes à choisir :",
+					"Votre réponse", "doit être un entier positive"));
+			if(bornSup>bornInf){
+				renouvellez = readConsoleInput("^oui|non", "Vous confirmez votre choix : "
+						+ "born inf : "+ bornInf+
+						" born sup : "+ bornSup,
+						"Votre réponse", "doit être oui ou non");
+			}else{
+				System.out.println("Veuillez renouvellez votre saisie afin que la borne sup soit plus"
+						+ "grande que la borne inf");
+				renouvellez="non";
+			}
+			
+		}while(renouvellez.equals("non"));
+		manager.setCritSelectVille(bornInf, bornSup);
+	}
+
+
+	private String selectSource(String objectRelated)throws HomeException{
+		String renouvellez;
+		String strTypeSource;
+		do{
+			String[] pourAffichageEtSaisieDesSourceType = this.printManager.typeSourcesToString();
+			System.out.println();
+			System.out.println("Choisir un type de source à utiliser pour les "+objectRelated+" : ");
+			System.out.println(pourAffichageEtSaisieDesSourceType[0]);
+			System.out.println("Saisir le type de source à utiliser pour les "+objectRelated+" : ");
+			strTypeSource = readConsoleInput(pourAffichageEtSaisieDesSourceType[1], "Entrez le type de source choisi : ",
+					"Votre réponse", "doit être un des types sources");
+			renouvellez = readConsoleInput("^oui|non", "Est ce bien ce type de source : "+ strTypeSource +""
+					+ " que vous voulez utiliser ? ",
+					"Votre réponse", "doit être oui ou non");
+		}while(renouvellez.equals("non"));
+		return strTypeSource;
+	}
+
+	private String selectPath()throws HomeException{
+		String renouvellez;
+		String path;
+		do{
+			path = readConsoleInput("^MINE$|CLIENT", "Saisir le répertoire des annonces à utiliser",
+					"Votre réponse", "doit être MINE ou CLIENT");
+			renouvellez = readConsoleInput("^oui|non", "Est ce bien ce répertoire : "+ path +""
+					+ " que vous voulez utiliser ? ",
+					"Votre réponse", "doit être oui ou non");
+		}while(renouvellez.equals("non"));
+		return path;
+	}
+
+
+	private void selectionTextes() throws HomeException {
+		String renouvellez;
+		do{
+			String strTypeSource = selectSource("textes");
+			manager.setTexteSourceType(strTypeSource);
+
+			switch (manager.getTexteSourceType()) {
+			case SQL:
+				selectionTexteSql();
+				break;
+			case XLSX:
+				selectionTextesXlsx();	
+				break;
+			}
+			manager.setTextes();
+			// on affiche les titres choisies pour vérification de la part de l'utilisateur 
+			System.out.println(printManager.texteToString());
+			renouvellez = readConsoleInput("^oui|non", "Est ce bien les textes ci dessus que vous voulez utiliser ?",
+					"Votre réponse", "doit être oui ou non");
+		}while(renouvellez.equals("non"));
+
+	}
+
+
+	private void selectionTextesXlsx() throws HomeException{
+		String path = selectPath();
+		manager.setPathToAdds(path);	
+	}
+
+
+	private void selectionTexteSql() {
+		// TODO Auto-generated method stub
+
+	}
+
+
+	private void selectionTitres() throws HomeException{
+		String renouvellez;
+		do{
+			String strTypeSource = selectSource("titres");
+			manager.setTitleSourceType(strTypeSource);
+
+			switch (manager.getTitleSourceType()) {
+			case SQL:
+				selectionTitresSql();
+				break;
+			case XLSX:
+				selectionTitresXlsx();	
+				break;
+			}
+			manager.setTitres();
+			// on affiche les titres choisies pour vérification de la part de l'utilisateur 
+			System.out.println(printManager.titreToString());
+			renouvellez = readConsoleInput("^oui|non", "Est ce bien les titres ci dessus que vous voulez utiliser ?",
+					"Votre réponse", "doit être oui ou non");
+		}while(renouvellez.equals("non"));
+
+
+	}
+
+
+
+
+	private void selectionTitresXlsx() throws HomeException{
+		String path = selectPath();
+		manager.setPathToAdds(path);
+	}
+
+
+	private void selectionTitresSql() {
+		// TODO Auto-generated method stub
+
+	}
+
+
+	private void choixDunCompte() throws HomeException{
+
+		manager.setComptes();
+		String[] pourAffichageEtSaisieDesComptes = this.printManager.comptestoString();
+		String renouvellez;
+		String idCompte ;
+		System.out.println();
+		do{
+
+
+			System.out.println("Choisir un compte à utiliser : ");
+			System.out.println(pourAffichageEtSaisieDesComptes[0]);
+			System.out.println("Saisir le compte à utiliser : ");
+			idCompte = readConsoleInput(pourAffichageEtSaisieDesComptes[1], "Entrez l'identifiant du compte choisi : ",
+					"Votre réponse", "doit être un des identifiants");
+			manager.setCompte(Integer.parseInt(idCompte));
+			//		System.out.println("Vous avez choisi le compte : "+manager.getCompteInUse().getMail());
+			renouvellez = readConsoleInput("^oui|non", "Est ce bien ce compte : "+ manager.getCompteInUse().getMail() +""
+					+ " que vous voulez utiliser ? ",
+					"Votre réponse", "doit être oui ou non");
+		}while(renouvellez.equals("non"));
+		manager.setCompte(Integer.parseInt(idCompte));
+	}
 
 
 	public String readConsoleInput(String regex, String message, String variableASaisir, String format)
