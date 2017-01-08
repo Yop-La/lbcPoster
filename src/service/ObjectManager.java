@@ -41,6 +41,11 @@ public class ObjectManager {
 
 	private List<Title> titres;
 
+	public void controlerAnnonces(){
+		agentLbc.setUp();
+		agentLbc.connect();
+	}
+
 	public void lancerPublication() {
 		// génération des annonces
 		addsGenerator.setImage();
