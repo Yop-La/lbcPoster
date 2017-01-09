@@ -7,6 +7,11 @@ public class Commune {
 	private Float popTotale;
 	private String codeReg;
 	private String nomReg;
+	private String CodePostal;
+	
+	public Commune(){
+	}
+	
 	public Commune(String codeDep, String codeCommune, String nomCommune, Float popTotale, String codeReg,
 			String nomReg) {
 		super();
@@ -24,6 +29,14 @@ public class Commune {
 	}
 	
 	
+	public String getCodePostal() {
+		return CodePostal;
+	}
+
+	public void setCodePostal(String codePostal) {
+		CodePostal = codePostal;
+	}
+
 	public String getCodeDep() {
 		return codeDep;
 	}

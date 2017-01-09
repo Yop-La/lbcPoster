@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.plaf.ActionMapUIResource;
+
 import org.dom4j.datatype.DatatypeDocumentFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
@@ -72,6 +74,7 @@ public class AgentLbc{
 		try{
 			driver = new FirefoxDriver();
 			driver.manage().timeouts().implicitlyWait(50, TimeUnit.SECONDS);
+			driver.manage().timeouts().pageLoadTimeout(50, TimeUnit.SECONDS);
 		}catch(Exception excep){
 			System.out.println("Problème au moment du setup");
 		}
@@ -193,57 +196,93 @@ public class AgentLbc{
 	}
 
 
-	public void controlCompte(){
-		List<String> addLinks = new ArrayList<String>();
-		List<WebElement> listeAdds = driver.findElements(By.cssSelector("div.element"));
-		int indexAdd = 1;
-		
-		// on parcoure les infos de la liste d'annonces (nb clique, date de mise en ligne, nb mails )
-		for(WebElement web : listeAdds){
+	public List<Add> controlCompte(){
 
-			Add addInControl = new Add();
 
-			// on récupère la date de mise en ligne, le nb de clics tel, de vue, etc des annonces de la liste 
-			System.out.println("---- Add n°"+indexAdd+" -----");
-			String date = web.findElement(By.cssSelector("div.date")).getText();
-			String hour = web.findElement(By.cssSelector("div.hour")).getText();
-			addInControl.setNbJoursRestants(Integer.parseInt(web.findElement(By.cssSelector("div.nb")).getText()));
-			addInControl.setNbVues(Integer.parseInt(web.findElement(By.xpath("div[4]/div[1]/span")).getAttribute("innerHTML")));
-			addInControl.setNbMailsRecus(Integer.parseInt(web.findElement(By.xpath("div[4]/div[2]/span")).getAttribute("innerHTML")));
-			addInControl.setNbClickTel(Integer.parseInt(web.findElement(By.xpath("div[4]/div[3]/span")).getAttribute("innerHTML")));
 
-			// conversion de la date de mise en ligne
-			try{
-				SimpleDateFormat sdf = new SimpleDateFormat("d MMM hh:mm");
-				String dateInString = date+" "+hour;
-				Calendar dateDepot = Calendar.getInstance();
-				dateDepot.setTime(sdf.parse(dateInString));
-				Calendar dateOfTheDay = Calendar.getInstance();
-				if(dateOfTheDay.get(Calendar.MONTH)<dateDepot.get(Calendar.MONTH)){
-					dateDepot.set(Calendar.YEAR, dateOfTheDay.get(Calendar.YEAR)-1);
-				}else{
-					dateDepot.set(Calendar.YEAR, dateOfTheDay.get(Calendar.YEAR));
+		boolean allAddsControled = false;
+		List<Add> addsControled = new ArrayList<Add>();
+		int indicePageInControl = 1;
+
+		while(!allAddsControled){ // pour boucler sur les pages des annonces 
+			int indicePage;
+
+			List<String> addLinks = new ArrayList<String>();
+			List<WebElement> listeAdds = driver.findElements(By.cssSelector("div.element"));
+			List<Add> addsOnPageInControl = new ArrayList<Add>(); // rassemble toutes les adds d'une page mon compte
+			// on parcoure les infos de la liste d'annonces (nb clique, date de mise en ligne, nb mails )
+			for(WebElement enteteAdd : listeAdds){
+
+				Add addInControl = new Add();
+
+				// on récupère la date de mise en ligne, le nb de clics tel, de vue, etc des annonces de la liste 
+
+				String date = enteteAdd.findElement(By.cssSelector("div.date")).getText();
+				String hour = enteteAdd.findElement(By.cssSelector("div.hour")).getText();
+				addInControl.setNbJoursRestants(Integer.parseInt(enteteAdd.findElement(By.cssSelector("div.nb")).getText()));
+				addInControl.setNbVues(Integer.parseInt(enteteAdd.findElement(By.xpath("div[4]/div[1]/span")).getAttribute("innerHTML")));
+				addInControl.setNbMailsRecus(Integer.parseInt(enteteAdd.findElement(By.xpath("div[4]/div[2]/span")).getAttribute("innerHTML")));
+				addInControl.setNbClickTel(Integer.parseInt(enteteAdd.findElement(By.xpath("div[4]/div[3]/span")).getAttribute("innerHTML")));
+
+				// conversion de la date de mise en ligne
+				try{
+					SimpleDateFormat sdf = new SimpleDateFormat("d MMM hh:mm");
+					String dateInString = date+" "+hour;
+					Calendar dateDepot = Calendar.getInstance();
+					dateDepot.setTime(sdf.parse(dateInString));
+					Calendar dateOfTheDay = Calendar.getInstance();
+					if(dateOfTheDay.get(Calendar.MONTH)<dateDepot.get(Calendar.MONTH)){
+						dateDepot.set(Calendar.YEAR, dateOfTheDay.get(Calendar.YEAR)-1);
+					}else{
+						dateDepot.set(Calendar.YEAR, dateOfTheDay.get(Calendar.YEAR));
+					}
+					addInControl.setDateMiseEnLigne(dateDepot);
+				}catch(Exception exec){
+					System.out.println("date impossible à convertir !");
 				}
-				addInControl.setDateMiseEnLigne(dateDepot);
-			}catch(Exception exec){
-				System.out.println("date impossible à convertir !");
+				addsOnPageInControl.add(addInControl);
+				// on se rend sur chacune des annonces pour récupérer la ville d'origine de l'annonce, le texte et le titre
+				//System.out.println(web.findElement(By.cssSelector("a"));
+
+				String addLink = enteteAdd.findElement(By.cssSelector("a")).getAttribute("href");
+				addLinks.add(addLink);
 			}
 
-			// on se rend sur chacune des annonces pour récupérer la ville d'origine de l'annonce, le texte et le titre
-			//System.out.println(web.findElement(By.cssSelector("a"));
+			// on parcoure ensuite les annonces une à une pour récupérer titre, textes et ville
+			for(int i=0;i<addLinks.size();i++){
 
-			String addLink = web.findElement(By.cssSelector("a")).getAttribute("href");
-			addLinks.add(addLink);
-			indexAdd++;
+				String addLink = addLinks.get(i);
+				Add add = addsOnPageInControl.get(i); 
+				driver.get(addLink);
+				String nomCommuneComplet = driver.findElement(By.cssSelector("span.value")).getText();
+				String[] nomCommune = nomCommuneComplet.split(" ");
+				Commune commune = new Commune();
+				commune.setNomCommune(nomCommune[0]);
+				commune.setCodePostal(nomCommune[1]);
+				add.setCommune(commune);
+				String title = driver.findElement(By.cssSelector("h1.no-border")).getText();
+				add.setTitle(new Title(title));
+				String texte = driver.findElement(By.id("description")).getText();
+				add.setTexte(new Texte(texte));
+				System.out.println("---- Add n°"+(i+1+(indicePageInControl-1)*30)+" controlé -----");
+			}
+			addsControled.addAll(addsOnPageInControl);
+			driver.get("https://compteperso.leboncoin.fr/account/index.html");
+			try{
+				for(int i=0;i<indicePageInControl;i++){
+					driver.findElement(By.linkText(">")).click();
+					do{
+						WebElement actualPage = driver.findElement(By.cssSelector("#dashboard_pagging > li.selected"));
+						indicePage = Integer.parseInt(actualPage.getText());
+					}while(indicePage!=(i+1));
+					Thread.sleep(10000);
+				}
+			}catch(Exception exception){
+				allAddsControled =true;
+			}
+			indicePageInControl ++;
 		}
-		
-		// on parcoure ensuite les annonces une à une
-		for(String addLink : addLinks){
-			driver.get(addLink);
-			System.out.println(driver.findElement(By.cssSelector("h1.no-border")).getText());
-			System.out.println(driver.findElement(By.id("description")).getText());
-		}
-
+		return addsControled;
 	}
 	WebElement waitForWebElementToRespectCondition(By by, int expectedCondition ){
 		WebElement myDynamicElement=null;

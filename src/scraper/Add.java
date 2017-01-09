@@ -28,7 +28,10 @@ public class Add {
 	}
 	
 	public String toString(){
-		String retour = title.getTitre() + "\n" + texte + "\n" + commune.getNomCommune() + "\n" + image.getPath();
+		String retour = commune.getNomCommune() +" : "+ commune.getCodePostal() +"\n"
+							+ " nb vues : " + nbVues + " | nb mails " + nbMailsRecus + " | nb clics " + nbClickTel
+							+ title.getTitre() + "\n" 
+							+ texte.getCorpsTexte(); 
 		return retour;
 	}
 
@@ -104,7 +107,6 @@ public class Add {
 		this.nbClickTel = nbClickTel;
 	}
 
-	
 	
 	
 }
