@@ -48,6 +48,7 @@ public class MoteurConsole {
 			System.out.println();
 			System.out.println("1 : Publier des annonces");
 			System.out.println("2 : Ajouter un nouveau compte LBC");
+			System.out.println("3 : Controler un compte LBC");
 			System.out.println();
 			String saisie = Console.readString("Que voulez vous faire ?");
 			// Enregistrement du choix de l'utilisateur dans numéro
@@ -67,6 +68,13 @@ public class MoteurConsole {
 					continueBoucle = true;
 				}
 				break;
+			case "3":
+				try {
+					ControlCompteLbc();
+				} catch (HomeException homeException) {
+					continueBoucle = true;
+				}
+				break;
 
 			case "ESC":
 				System.out.println("Fermeture de l'application ");
@@ -80,6 +88,14 @@ public class MoteurConsole {
 			}
 		}
 	}
+
+	private void ControlCompteLbc() throws HomeException{
+		choixDunCompte();
+		manager.createAgentLbc();
+		manager.lancerControlCompte();
+		throw new HomeException();
+	}
+
 
 	private void addNewCompteLbc() throws HomeException {
 		String mail = readConsoleInput("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$", "Entrez le mail du compte LBC à ajouter",
@@ -103,7 +119,7 @@ public class MoteurConsole {
 		selectionTitres();
 		selectionTextes();
 		selectionCommunes();
-		
+
 		System.out.println("Démarrage de la publication ...");
 		manager.lancerPublication();
 
@@ -139,7 +155,7 @@ public class MoteurConsole {
 
 	private void selectionCommuneXlsx() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 
@@ -162,7 +178,7 @@ public class MoteurConsole {
 						+ "grande que la borne inf");
 				renouvellez="non";
 			}
-			
+
 		}while(renouvellez.equals("non"));
 		manager.setCritSelectVille(bornInf, bornSup);
 	}

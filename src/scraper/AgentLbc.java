@@ -1,5 +1,12 @@
 package scraper;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.dom4j.datatype.DatatypeDocumentFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
@@ -17,15 +24,21 @@ public class AgentLbc{
 	private CompteLbc compteLBC;
 	private WebDriver driver;
 	private List<Add> addsToPublish;
+	private List<Add> addsControled;
 	private int nbAddsToPublish;
 
 	private int numDepart=1;
 
-	
+
 	// constructeur pour publier des annonces à partir fichiers CSV
 	public AgentLbc(CompteLbc compteLbc, int nbAddsToPublish) {
 		this.compteLBC = compteLbc;
 		this.nbAddsToPublish = nbAddsToPublish;
+	}
+
+	public AgentLbc(CompteLbc compteLbc) {
+		this.compteLBC = compteLbc;
+		addsControled = new ArrayList<Add>();
 	}
 
 	public List<Add> getAddsToPublish() {
@@ -54,10 +67,11 @@ public class AgentLbc{
 	public void setNumDepart(int numDepart) {
 		this.numDepart = numDepart;
 	}
-	
+
 	public void setUp(){
 		try{
 			driver = new FirefoxDriver();
+			driver.manage().timeouts().implicitlyWait(50, TimeUnit.SECONDS);
 		}catch(Exception excep){
 			System.out.println("Problème au moment du setup");
 		}
@@ -77,27 +91,16 @@ public class AgentLbc{
 
 		driver.get("https://www.leboncoin.fr/");
 
-		clickAgainUntilExpectedCondition(
-				By.xpath("//header[@id='header']/section/section/aside/button"), 
-				By.name("st_username"),
-				1000, 
-				1000);
-		waitForWebElementToRespectCondition(By.name("st_username"),1).click();
-		waitForWebElementToRespectCondition(By.name("st_username"),1).sendKeys(compteLBC.getMail());
-		waitForWebElementToRespectCondition(By.name("st_passwd"),1).sendKeys(compteLBC.getPassword());
-		clickAgainUntilExpectedCondition(
-				By.xpath("//input[@value='Se connecter']"), 
-				By.linkText("Déposer une annonce"),
-				4000, 
-				1000);
+		driver.findElement(By.xpath("//header[@id='header']/section/section/aside/button")).click();
+
+		driver.findElement(By.name("st_username")).click();
+		driver.findElement(By.name("st_username")).sendKeys(compteLBC.getMail());
+		driver.findElement(By.name("st_passwd")).sendKeys(compteLBC.getPassword());
+		driver.findElement(By.xpath("//input[@value='Se connecter']")).click(); 
 	}
 
 	public void goToFormDepot(){
-		clickAgainUntilExpectedCondition(
-				By.linkText("Déposer une annonce"), 
-				By.cssSelector("div.grid-2 > div"),
-				4000, 
-				1000);
+		driver.findElement(By.linkText("Déposer une annonce")).click(); 
 	}
 
 	public void publish(){
@@ -191,6 +194,55 @@ public class AgentLbc{
 
 
 	public void controlCompte(){
+		List<String> addLinks = new ArrayList<String>();
+		List<WebElement> listeAdds = driver.findElements(By.cssSelector("div.element"));
+		int indexAdd = 1;
+		
+		// on parcoure les infos de la liste d'annonces (nb clique, date de mise en ligne, nb mails )
+		for(WebElement web : listeAdds){
+
+			Add addInControl = new Add();
+
+			// on récupère la date de mise en ligne, le nb de clics tel, de vue, etc des annonces de la liste 
+			System.out.println("---- Add n°"+indexAdd+" -----");
+			String date = web.findElement(By.cssSelector("div.date")).getText();
+			String hour = web.findElement(By.cssSelector("div.hour")).getText();
+			addInControl.setNbJoursRestants(Integer.parseInt(web.findElement(By.cssSelector("div.nb")).getText()));
+			addInControl.setNbVues(Integer.parseInt(web.findElement(By.xpath("div[4]/div[1]/span")).getAttribute("innerHTML")));
+			addInControl.setNbMailsRecus(Integer.parseInt(web.findElement(By.xpath("div[4]/div[2]/span")).getAttribute("innerHTML")));
+			addInControl.setNbClickTel(Integer.parseInt(web.findElement(By.xpath("div[4]/div[3]/span")).getAttribute("innerHTML")));
+
+			// conversion de la date de mise en ligne
+			try{
+				SimpleDateFormat sdf = new SimpleDateFormat("d MMM hh:mm");
+				String dateInString = date+" "+hour;
+				Calendar dateDepot = Calendar.getInstance();
+				dateDepot.setTime(sdf.parse(dateInString));
+				Calendar dateOfTheDay = Calendar.getInstance();
+				if(dateOfTheDay.get(Calendar.MONTH)<dateDepot.get(Calendar.MONTH)){
+					dateDepot.set(Calendar.YEAR, dateOfTheDay.get(Calendar.YEAR)-1);
+				}else{
+					dateDepot.set(Calendar.YEAR, dateOfTheDay.get(Calendar.YEAR));
+				}
+				addInControl.setDateMiseEnLigne(dateDepot);
+			}catch(Exception exec){
+				System.out.println("date impossible à convertir !");
+			}
+
+			// on se rend sur chacune des annonces pour récupérer la ville d'origine de l'annonce, le texte et le titre
+			//System.out.println(web.findElement(By.cssSelector("a"));
+
+			String addLink = web.findElement(By.cssSelector("a")).getAttribute("href");
+			addLinks.add(addLink);
+			indexAdd++;
+		}
+		
+		// on parcoure ensuite les annonces une à une
+		for(String addLink : addLinks){
+			driver.get(addLink);
+			System.out.println(driver.findElement(By.cssSelector("h1.no-border")).getText());
+			System.out.println(driver.findElement(By.id("description")).getText());
+		}
 
 	}
 	WebElement waitForWebElementToRespectCondition(By by, int expectedCondition ){

@@ -41,9 +41,12 @@ public class ObjectManager {
 
 	private List<Title> titres;
 
-	public void controlerAnnonces(){
+	public void lancerControlCompte() {
+		// TODO Auto-generated method stub
+		
 		agentLbc.setUp();
 		agentLbc.connect();
+		agentLbc.controlCompte();
 	}
 
 	public void lancerPublication() {
@@ -122,6 +125,10 @@ public class ObjectManager {
 	public void createAgentLbc(int nbAddsToPublish){
 		agentLbc = new AgentLbc(compteInUse, nbAddsToPublish);
 		setNbAddsToPublish(nbAddsToPublish);
+	}
+	
+	public void createAgentLbc(){
+		agentLbc = new AgentLbc(compteInUse);
 	}
 
 	public CompteLbc getCompteInUse() {
@@ -242,6 +249,10 @@ public class ObjectManager {
 	public void setCommuneSourceType(Source communeSourceType) {
 		this.communeSourceType = communeSourceType;
 	}
+
+
+
+
 
 
 
