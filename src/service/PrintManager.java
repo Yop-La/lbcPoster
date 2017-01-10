@@ -2,7 +2,7 @@ package service;
 
 import java.util.List;
 
-
+import scraper.Commune;
 import scraper.CompteLbc;
 import scraper.Source;
 
@@ -85,4 +85,9 @@ public class PrintManager {
 		return listToString(objectManager.getCommuneSource());
 	}
 
+	public String toCompareCommunes(Commune commune){
+		String retour = "";
+		retour = "Commune sur LBC : "+commune.getNomCommuneOnLbc()+" vs commune dans la bdd : "+commune.getNomCommuneInBase();
+		return retour;
+	}
 }

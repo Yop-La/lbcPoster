@@ -1,9 +1,11 @@
 package service;
 
 
+import java.util.Iterator;
 import java.util.List;
 
 import fr.doodle.dao.CompteLbcDao;
+import scraper.Add;
 import scraper.AddsGenerator;
 import scraper.AgentLbc;
 import scraper.Commune;
@@ -21,6 +23,7 @@ public class ObjectManager {
 
 	private AgentLbc agentLbc;
 	private AddsGenerator addsGenerator;
+	private AddsSaver addsSaver;
 
 	private List<CompteLbc> comptes;
 	private CompteLbc compteInUse;
@@ -36,17 +39,33 @@ public class ObjectManager {
 	private CritereSelectionTitre critSelectTitre;
 	private CriteresSelectionVille critSelectVille;
 
-
 	private PathToAdds pathToAdds; 
 
-	private List<Title> titres;
+	private List<Add> addsReadyToSave;
+	Iterator<Add> itOnAddReadyTosave;
 
 	public void lancerControlCompte() {
 		// TODO Auto-generated method stub
-		
+
 		agentLbc.setUp();
 		agentLbc.connect();
-		agentLbc.controlCompte();
+		this.addsReadyToSave = agentLbc.controlCompte(); // pour récupérer les annonces controlés
+		addsSaver = new AddsSaver(addsReadyToSave);
+		addsSaver.prepareAddsToSaving();
+		itOnAddReadyTosave = addsReadyToSave.iterator();
+	}
+		
+	// pour itérer sur les communes des adds prêtes à être sauvegardées
+	public Commune nextCommuneReadyTosave(){
+		return itOnAddReadyTosave.next().getCommune();
+	}
+	
+	public boolean hasNextCommuneReadyTosave(){	
+		boolean retour = itOnAddReadyTosave.hasNext();
+		if(!retour){
+			itOnAddReadyTosave = addsReadyToSave.iterator();
+		}
+		return retour;
 	}
 
 	public void lancerPublication() {
@@ -222,13 +241,6 @@ public class ObjectManager {
 		this.pathToAdds = pathToAdds;
 	}
 
-	public List<Title> getTitres() {
-		return titres;
-	}
-
-	public void setTitres(List<Title> titres) {
-		this.titres = titres;
-	}
 
 	public void setComptes(List<CompteLbc> comptes) {
 		this.comptes = comptes;

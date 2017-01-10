@@ -43,6 +43,16 @@ public class AgentLbc{
 		addsControled = new ArrayList<Add>();
 	}
 
+	
+	
+	public List<Add> getAddsControled() {
+		return addsControled;
+	}
+
+	public void setAddsControled(List<Add> addsControled) {
+		this.addsControled = addsControled;
+	}
+
 	public List<Add> getAddsToPublish() {
 		return addsToPublish;
 	}
@@ -145,7 +155,7 @@ public class AgentLbc{
 
 		// saisie du lieu 
 		waitForWebElementToRespectCondition(By.id("location_p"),3).clear();
-		waitForWebElementToRespectCondition(By.id("location_p"),3).sendKeys(addInPublication.getCommune().getNomCommune());
+		waitForWebElementToRespectCondition(By.id("location_p"),3).sendKeys(addInPublication.getCommune().getNomCommuneInBase());
 		waitForWebElementToRespectCondition(By.id("location_p"),3).sendKeys(Keys.LEFT);
 		waitForWebElementToRespectCondition(By.cssSelector("ul.location-list.visible"),1);
 		waitForWebElementToRespectCondition(By.id("location_p"),1).sendKeys(Keys.ENTER);
@@ -257,7 +267,7 @@ public class AgentLbc{
 				String nomCommuneComplet = driver.findElement(By.cssSelector("span.value")).getText();
 				String[] nomCommune = nomCommuneComplet.split(" ");
 				Commune commune = new Commune();
-				commune.setNomCommune(nomCommune[0]);
+				commune.setNomCommuneOnLbc(nomCommune[0]);
 				commune.setCodePostal(nomCommune[1]);
 				add.setCommune(commune);
 				String title = driver.findElement(By.cssSelector("h1.no-border")).getText();
@@ -280,8 +290,10 @@ public class AgentLbc{
 			}catch(Exception exception){
 				allAddsControled =true;
 			}
+			allAddsControled = true;
 			indicePageInControl ++;
 		}
+		this.addsControled = addsControled;
 		return addsControled;
 	}
 	WebElement waitForWebElementToRespectCondition(By by, int expectedCondition ){

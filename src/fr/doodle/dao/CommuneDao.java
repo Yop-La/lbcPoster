@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import scraper.Commune;
@@ -24,9 +25,52 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 	}
 
 	@Override
-	public Commune findOne(Integer id) {
-		// TODO Auto-generated method stub
-		return null;
+	public Commune findOne(Integer refCommune) {
+		Commune retour=null;
+		try(Connection maConnection = getConnection()){	
+			try(PreparedStatement addAdminStatement = 
+					maConnection.prepareStatement("SELECT "
+							+ " code_dep,"
+							+ " code_commune,"
+							+ " nom_commune,"
+							+ " pop_totale,"
+							+ " code_reg,"
+							+ " nom_reg,"
+							+ " ref_commune "
+							+ "from titres where ref_commune = ?")){	
+				addAdminStatement.setInt(1, refCommune);
+				ResultSet rs = addAdminStatement.executeQuery();
+				if (rs.next()) {
+					retour = new Commune(rs.getString(1), rs.getString(2), rs.getString(3), 
+										rs.getFloat(4), rs.getString(5), rs.getString(6), 
+										rs.getInt(7));
+				}
+				return retour;
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+			return retour;
+		}
+	}
+	
+	// retourne null si pas correspondance ou si exception
+	public Commune findOneWithNomCommune(Commune commune){
+		Commune retour=null;
+		try(Connection maConnection = getConnection()){	
+			try(PreparedStatement addAdminStatement = 
+					maConnection.prepareStatement("SELECT ref_commune from communes where nom_commune = ?")){	
+				addAdminStatement.setString(1, commune.getNomCommuneOnLbc());
+				ResultSet rs = addAdminStatement.executeQuery();
+				if (rs.next()) {
+					retour = findOne(rs.getInt(1));
+					retour.setNomCommuneOnLbc(commune.getNomCommuneOnLbc());
+				}
+				return retour;
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+			return retour;
+		}
 	}
 
 	@Override
@@ -63,7 +107,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 	public List<Commune> findWithSelection(CriteresSelectionVille critSelecVille){
 		List<Commune> communes = new ArrayList<Commune>();
 		int indexPointDinterrogation = 1;
-		String requete ="SELECT code_dep, code_commune, nom_commune, pop_totale, code_reg, nom_reg 	from communes where true";
+		String requete ="SELECT code_dep, code_commune, nom_commune, pop_totale, code_reg, nom_reg, ref_commune from communes where true";
 		if(critSelecVille.getBornInfPop()!=-1){
 			requete = requete + "and pop_totale >= ?";
 		}
@@ -85,7 +129,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				}
 				try(ResultSet results = getVillesWithSelection.executeQuery()){
 					while(results.next()){
-						Commune commune = new Commune(results.getString(1), results.getString(2), results.getString(3), results.getFloat(4), results.getString(1), results.getString(5));
+						Commune commune = new Commune(results.getString(1), results.getString(2), results.getString(3), results.getFloat(4), results.getString(5), results.getString(6), results.getInt(7));
 						communes.add(commune);
 					}
 				}

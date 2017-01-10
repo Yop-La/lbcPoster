@@ -28,7 +28,7 @@ public class Add {
 	}
 	
 	public String toString(){
-		String retour = commune.getNomCommune() +" : "+ commune.getCodePostal() +"\n"
+		String retour = commune.getNomCommuneInBase() +" : "+ commune.getCodePostal() +"\n"
 							+ " nb vues : " + nbVues + " | nb mails " + nbMailsRecus + " | nb clics " + nbClickTel
 							+ title.getTitre() + "\n" 
 							+ texte.getCorpsTexte(); 

@@ -8,9 +8,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 import exception.HomeException;
 import fr.doodle.dao.CompteLbcDao;
-import scraper.AgentLbc;
 import scraper.CompteLbc;
-import scraper.Source;
 import service.ObjectManager;
 import service.PrintManager;
 import util.Console;
@@ -93,7 +91,23 @@ public class MoteurConsole {
 		choixDunCompte();
 		manager.createAgentLbc();
 		manager.lancerControlCompte();
+		ControlAdds();
 		throw new HomeException();
+	}
+
+
+	private void ControlAdds() {
+		System.out.println("------    CONTRÔLE DES ANNONCES SUR LBC   ------");
+		ControlCommunes();
+		
+	}
+
+
+	private void ControlCommunes() {
+		System.out.println("**    COMPARAISON DES COMMUNES SUR LBC À LA BDD   **");
+		while(manager.hasNextCommuneReadyTosave()){
+			printManager.toCompareCommunes(manager.nextCommuneReadyTosave());
+		}
 	}
 
 
