@@ -31,7 +31,7 @@ public class Add {
 		String retour = commune.getNomCommuneInBase() +" : "+ commune.getCodePostal() +"\n"
 							+ " nb vues : " + nbVues + " | nb mails " + nbMailsRecus + " | nb clics " + nbClickTel
 							+ title.getTitre() + "\n" 
-							+ texte.getCorpsTexte(); 
+							+ texte.getCorpsTexteOnLbc(); 
 		return retour;
 	}
 

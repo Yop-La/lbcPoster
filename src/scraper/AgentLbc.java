@@ -2,13 +2,11 @@ package scraper;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import javax.swing.plaf.ActionMapUIResource;
-
-import org.dom4j.datatype.DatatypeDocumentFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
@@ -43,8 +41,8 @@ public class AgentLbc{
 		addsControled = new ArrayList<Add>();
 	}
 
-	
-	
+
+
 	public List<Add> getAddsControled() {
 		return addsControled;
 	}
@@ -101,8 +99,11 @@ public class AgentLbc{
 
 	// pour se connecter à un compte LBC
 	public void connect(){
-
-		driver.get("https://www.leboncoin.fr/");
+		try{
+			driver.get("https://www.leboncoin.fr/");
+		}catch(Exception ex){
+			driver.get("https://www.leboncoin.fr/");
+		}
 
 		driver.findElement(By.xpath("//header[@id='header']/section/section/aside/button")).click();
 
@@ -148,7 +149,7 @@ public class AgentLbc{
 
 		// saisie du texte
 		waitForWebElementToRespectCondition(By.id("body"),1).clear();
-		waitForWebElementToRespectCondition(By.id("body"),1).sendKeys(addInPublication.getTexte().getCorpsTexte());
+		waitForWebElementToRespectCondition(By.id("body"),1).sendKeys(addInPublication.getTexte().getCorpsTexteForPublication());
 
 		// saisie de l'image
 		waitForWebElementToRespectCondition(By.id("image0"),3).sendKeys(addInPublication.getImage().getAbsolutePath());
@@ -221,6 +222,7 @@ public class AgentLbc{
 			List<WebElement> listeAdds = driver.findElements(By.cssSelector("div.element"));
 			List<Add> addsOnPageInControl = new ArrayList<Add>(); // rassemble toutes les adds d'une page mon compte
 			// on parcoure les infos de la liste d'annonces (nb clique, date de mise en ligne, nb mails )
+			int indexAddToControl = 0; 
 			for(WebElement enteteAdd : listeAdds){
 
 				Add addInControl = new Add();
@@ -256,6 +258,9 @@ public class AgentLbc{
 
 				String addLink = enteteAdd.findElement(By.cssSelector("a")).getAttribute("href");
 				addLinks.add(addLink);
+				indexAddToControl++;
+				/*	if(indexAddToControl==5)
+					break;*/
 			}
 
 			// on parcoure ensuite les annonces une à une pour récupérer titre, textes et ville
@@ -263,21 +268,47 @@ public class AgentLbc{
 
 				String addLink = addLinks.get(i);
 				Add add = addsOnPageInControl.get(i); 
-				driver.get(addLink);
+				try{
+					driver.get(addLink);
+				}catch(Exception e){
+					driver.get(addLink);
+				}
+
 				String nomCommuneComplet = driver.findElement(By.cssSelector("span.value")).getText();
-				String[] nomCommune = nomCommuneComplet.split(" ");
+
+				// pour séparer le code postal de la commune
+				Pattern p = Pattern.compile("^(\\S\\D+)\\s(\\d{5})$");
+				// création d'un moteur de recherche
+				Matcher m = p.matcher(nomCommuneComplet);
+				// lancement de la recherche de toutes les occurrences
+				boolean b = m.matches();
+
+				String nomCommune = m.group(1);
+				String codePostal = m.group(2);
+				System.out.println(m.groupCount()+" : "+nomCommune+" : "+codePostal);
+
 				Commune commune = new Commune();
-				commune.setNomCommuneOnLbc(nomCommune[0]);
-				commune.setCodePostal(nomCommune[1]);
+				commune.setNomCommuneOnLbc(nomCommune);
+				commune.setCodePostal(codePostal);
 				add.setCommune(commune);
 				String title = driver.findElement(By.cssSelector("h1.no-border")).getText();
 				add.setTitle(new Title(title));
 				String texte = driver.findElement(By.id("description")).getText();
-				add.setTexte(new Texte(texte));
+				Texte texteOnLbc = new Texte();
+				texteOnLbc.setCorpsTexteOnLbc(texte);
+				add.setTexte(texteOnLbc);
 				System.out.println("---- Add n°"+(i+1+(indicePageInControl-1)*30)+" controlé -----");
+				/*	if(indexAddToControl==4){
+					break;
+				}*/
 			}
 			addsControled.addAll(addsOnPageInControl);
-			driver.get("https://compteperso.leboncoin.fr/account/index.html");
+			//pour se rendre sur le page n° indicePage des annonces
+			try{
+				driver.get("https://compteperso.leboncoin.fr/account/index.html");
+			}catch(Exception e){
+				driver.get("https://compteperso.leboncoin.fr/account/index.html");
+			}
 			try{
 				for(int i=0;i<indicePageInControl;i++){
 					driver.findElement(By.linkText(">")).click();
@@ -290,7 +321,6 @@ public class AgentLbc{
 			}catch(Exception exception){
 				allAddsControled =true;
 			}
-			allAddsControled = true;
 			indicePageInControl ++;
 		}
 		this.addsControled = addsControled;

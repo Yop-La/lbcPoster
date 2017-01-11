@@ -1,5 +1,6 @@
 package scraper;
 
 public enum TypeTexte {
-	mes200TextesSoutienParMailScolaire;
+	mes150TextesSoutienParMailScolaire,
+	mes200TextesSoutienParMailScolaireAvecResa;
 }

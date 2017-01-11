@@ -3,7 +3,9 @@ package service;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
+import fr.doodle.dao.CommuneDao;
 import fr.doodle.dao.CompteLbcDao;
 import scraper.Add;
 import scraper.AddsGenerator;
@@ -42,7 +44,37 @@ public class ObjectManager {
 	private PathToAdds pathToAdds; 
 
 	private List<Add> addsReadyToSave;
-	Iterator<Add> itOnAddReadyTosave;
+	ListIterator<Add> itOnAddReadyTosave;
+
+	// DAO
+	private CommuneDao comDao = new CommuneDao();;
+
+	public void saveCodePostalAndNomCommuneNoCorrep(String idCommuneCorrespo) {
+		int idCommuneCorresp = Integer.parseInt(idCommuneCorrespo);
+		Commune commune = itOnAddReadyTosave.previous().getCommune();
+		Commune communeCorresp = comDao.findOne(idCommuneCorresp);
+		/* on met à jour le code postal */
+		communeCorresp.setCodePostal(commune.getCodePostal());
+		comDao.updateCodePostal(communeCorresp);
+		/* on met à jour le nom */
+		communeCorresp.setNomCommuneInBase(commune.getNomCommuneOnLbc());
+		comDao.updateNomCommune(communeCorresp);
+		itOnAddReadyTosave.next();
+	}
+
+	public void saveCodePostal(){
+		Commune commune = itOnAddReadyTosave.previous().getCommune();
+		if(commune.getCodePostal() ==null){
+			System.out.println("dedans");
+			comDao.updateCodePostal(commune);
+		}
+		itOnAddReadyTosave.next();
+	}
+
+	public List<Commune> search(String nameCommuneInBdd){
+		List<Commune> communes = comDao.findAll(nameCommuneInBdd);
+		return communes;
+	}
 
 	public void lancerControlCompte() {
 		// TODO Auto-generated method stub
@@ -50,20 +82,34 @@ public class ObjectManager {
 		agentLbc.setUp();
 		agentLbc.connect();
 		this.addsReadyToSave = agentLbc.controlCompte(); // pour récupérer les annonces controlés
-		addsSaver = new AddsSaver(addsReadyToSave);
+		addsSaver = new AddsSaver(addsReadyToSave); // pour faire le liene entres les annonces Lbc et la bdd (mettre à jour les ref)
 		addsSaver.prepareAddsToSaving();
-		itOnAddReadyTosave = addsReadyToSave.iterator();
+		itOnAddReadyTosave = addsReadyToSave.listIterator();
 	}
-		
+
 	// pour itérer sur les communes des adds prêtes à être sauvegardées
+	public Title nextTitleReadyTosave(){
+		return itOnAddReadyTosave.next().getTitle();
+	}
+	public Texte nextTexteReadyTosave() {
+		return itOnAddReadyTosave.next().getTexte();
+	}
+	public Texte previousTexteReadyTosave() {
+		return itOnAddReadyTosave.previous().getTexte();
+	}
+	
+	public Title previousTitleReadyTosave() {
+		return itOnAddReadyTosave.previous().getTitle();
+	}
+	
 	public Commune nextCommuneReadyTosave(){
 		return itOnAddReadyTosave.next().getCommune();
 	}
-	
-	public boolean hasNextCommuneReadyTosave(){	
+
+	public boolean hasNextAddReadyTosave(){	
 		boolean retour = itOnAddReadyTosave.hasNext();
 		if(!retour){
-			itOnAddReadyTosave = addsReadyToSave.iterator();
+			itOnAddReadyTosave = addsReadyToSave.listIterator();
 		}
 		return retour;
 	}
@@ -97,7 +143,9 @@ public class ObjectManager {
 
 
 	public void createAddsGenerator(){
+		
 		addsGenerator = new AddsGenerator(nbAddsToPublish);
+		addsGenerator.saveTexteXlsxInBdd();
 	}
 
 	public void setTextes() {
@@ -145,7 +193,7 @@ public class ObjectManager {
 		agentLbc = new AgentLbc(compteInUse, nbAddsToPublish);
 		setNbAddsToPublish(nbAddsToPublish);
 	}
-	
+
 	public void createAgentLbc(){
 		agentLbc = new AgentLbc(compteInUse);
 	}
@@ -261,6 +309,9 @@ public class ObjectManager {
 	public void setCommuneSourceType(Source communeSourceType) {
 		this.communeSourceType = communeSourceType;
 	}
+
+
+
 
 
 

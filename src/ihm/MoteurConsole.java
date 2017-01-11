@@ -96,18 +96,82 @@ public class MoteurConsole {
 	}
 
 
-	private void ControlAdds() {
+	private void ControlAdds() throws HomeException{
 		System.out.println("------    CONTRÔLE DES ANNONCES SUR LBC   ------");
 		ControlCommunes();
-		
+		ControlTitres();
+		ControlTextes();
 	}
 
 
-	private void ControlCommunes() {
-		System.out.println("**    COMPARAISON DES COMMUNES SUR LBC À LA BDD   **");
-		while(manager.hasNextCommuneReadyTosave()){
-			printManager.toCompareCommunes(manager.nextCommuneReadyTosave());
+	private void ControlTitres() throws HomeException {
+		System.out.println("**    COMPARAISON DES TITRES SUR LBC À LA BDD   **");
+		while(manager.hasNextAddReadyTosave()){
+			boolean correspondance = printManager.toCompareTitles();
+			if(!correspondance){
+				String confirmation = readConsoleInput("^OK$", 
+						"En attente d'une intervention manuelle ! Mettez à jour la bdd. Tapez OK pour reprendre",
+						"Votre réponse", 
+						"doit être OK");
+				if(confirmation.equals("OK")){
+					manager.previousTitleReadyTosave();
+				}
+			}
 		}
+		System.out.println("Tout est ok avec les titres !");
+	}
+
+	private void ControlTextes() throws HomeException {
+		System.out.println("**    COMPARAISON DES TEXTES SUR LBC À LA BDD   **");
+		while(manager.hasNextAddReadyTosave()){
+			boolean correspondance = printManager.toCompareTextes();
+			if(!correspondance){
+				String confirmation = readConsoleInput("^OK$", 
+						"En attente d'une intervention manuelle ! Mettez à jour la bdd. Tapez OK pour reprendre",
+						"Votre réponse", 
+						"doit être OK");
+				if(confirmation.equals("OK")){
+					manager.previousTexteReadyTosave();
+				}
+			}
+		}
+		System.out.println("Tout est ok avec les textes !");
+	}
+	
+
+	private void ControlCommunes() throws HomeException{
+		System.out.println("**    COMPARAISON DES COMMUNES SUR LBC À LA BDD   **");
+		while(manager.hasNextAddReadyTosave()){
+			boolean pasDeCorespBddLbc = printManager.toCompareCommunes(manager.nextCommuneReadyTosave());
+			if(pasDeCorespBddLbc){
+
+				String idCommuneCorrespo;
+				do{
+					String nomCom = readConsoleInput("^.{3,}$", 
+							"Saisir le nom de la commune qui correspond à celle du bon coin (pour la trouver dans la bdd) :",
+							"Votre réponse", 
+							"doit faire au moins 3 caractères");
+					printManager.searchResults(nomCom);
+					idCommuneCorrespo = readConsoleInput("^\\d+$|^non$", 
+							"Saisir l'identifiant de la commune qui correspond à celle du bon coin ou non pour refaire une recherche :",
+							"Votre réponse", 
+							"doit être un entier ou \"non\"");
+					if(!idCommuneCorrespo.equals("non")){
+						String confirmation = readConsoleInput("^oui$|^non$", 
+								"Confirmez vous votre choix d'identifiant : "+idCommuneCorrespo+" ?",
+								"Votre réponse", 
+								"doit être un entier oui ou non");
+						if(confirmation.equals("non")){
+							idCommuneCorrespo = "non";
+						}
+					}
+				}while(idCommuneCorrespo.equals("non"));
+				manager.saveCodePostalAndNomCommuneNoCorrep(idCommuneCorrespo);
+				System.out.println("Correspondance corrigé");
+			}
+			manager.saveCodePostal();// pour mettre à jour le code postal de la commune si pas déjà dans la bdd
+		}
+		System.out.println("Tout est ok avec les communes");
 	}
 
 

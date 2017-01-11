@@ -11,6 +11,7 @@ import com.opencsv.CSVReader;
 import csv.CSVReaderBis;
 import csv.XlstoCSV;
 import fr.doodle.dao.CommuneDao;
+import fr.doodle.dao.TexteDao;
 
 public class AddsGenerator {
 
@@ -200,6 +201,16 @@ public class AddsGenerator {
 		}
 		setNbTextes();
 
+	}
+	
+	public void saveTexteXlsxInBdd(){
+		pathToAddsDirectory = PathToAdds.MINE.getPath();
+		setTexteFromXlsx();
+		TexteDao texteDao = new TexteDao();
+		for(Texte texte : this.texteSource){
+			texte.setTypeTexte(TypeTexte.mes150TextesSoutienParMailScolaire);
+			texteDao.save(texte);
+		}
 	}
 
 	private void setNbTextes() {

@@ -10,12 +10,13 @@ public class Commune {
 	private String nomReg;
 	private String CodePostal;
 	private int refCommune;
+	private boolean isCodePostalFromBdd;
 	
 	public Commune(){
 	}
 	
 	public Commune(String codeDep, String codeCommune, String nomCommuneInBase, Float popTotale, String codeReg,
-			String nomReg, int refCommune) {
+			String nomReg, int refCommune, String codePostal) {
 		super();
 		this.codeDep = codeDep;
 		this.codeCommune = codeCommune;
@@ -24,6 +25,20 @@ public class Commune {
 		this.codeReg = codeReg;
 		this.nomReg = nomReg;
 		this.refCommune = refCommune;
+	}
+
+	public String toString(){
+		String retour="";
+		retour = "In base : "+nomCommuneInBase+" On Lbc : "+nomCommuneOnLbc;
+		return retour;
+	}
+	
+	public boolean isCodePostalFromBdd() {
+		return isCodePostalFromBdd;
+	}
+
+	public void setCodePostalFromBdd(boolean isCodePostalFromBdd) {
+		this.isCodePostalFromBdd = isCodePostalFromBdd;
 	}
 
 	public Commune(String nomCommuneOnLbc) {
