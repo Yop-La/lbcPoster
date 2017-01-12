@@ -12,6 +12,7 @@ import csv.CSVReaderBis;
 import csv.XlstoCSV;
 import fr.doodle.dao.CommuneDao;
 import fr.doodle.dao.TexteDao;
+import fr.doodle.dao.TitreDao;
 
 public class AddsGenerator {
 
@@ -38,90 +39,21 @@ public class AddsGenerator {
 	CriteresSelectionVille critSelectVille;
 	CriteresSelectionTexte critSelectTexte;
 
+	CompteLbc compteLbc;
+
 	// construteur
-	public AddsGenerator(int nbAddsToProduce){
+	public AddsGenerator(int nbAddsToProduce, CompteLbc compteLbc){
 		this.nbAddsToProduce = nbAddsToProduce;
 		this.addsProduced = new ArrayList<Add>();
-	}
-
-	public List<Title> getTitleSource() {
-		return titleSource;
-	}
-
-	public void setTitleSource(List<Title> titleSource) {
-		this.titleSource = titleSource;
-	}
-
-	public List<Texte> getTexteSource() {
-		return texteSource;
-	}
-
-	public void setTexteSource(List<Texte> texteSource) {
-		this.texteSource = texteSource;
-	}
-
-	public List<Commune> getCommuneSource() {
-		return communeSource;
-	}
-
-	public void setCommuneSource(List<Commune> communeSource) {
-		this.communeSource = communeSource;
-	}
-
-	public void setPathToAddsDirectory(String pathToAddsDirectory) {
-		this.pathToAddsDirectory = pathToAddsDirectory;
-	}
-
-	// set et getter des types de source des différements éléments des annonces (titre, texte, commune)
-	public Source getTypeSourceTitles() {
-		return typeSourceTitles;
-	}
-	public void setTypeSourceTitles(Source typeSourceTitles) {
-		this.typeSourceTitles = typeSourceTitles;
-	}
-	public Source getTypeSourceTextes() {
-		return typeSourceTextes;
-	}
-	public void setTypeSourceTextes(Source typeSourceTextes) {
-		this.typeSourceTextes = typeSourceTextes;
-	}
-	public Source getTypeSourceCommunes() {
-		return typeSourceCommunes;
-	}
-	public void setTypeSourceCommunes(Source typeSourceCommunes) {
-		this.typeSourceCommunes = typeSourceCommunes;
-	}
-
-	public CritereSelectionTitre getCritSelectTitre() {
-		return critSelectTitre;
-	}
-
-	public void setCritSelectTitre(CritereSelectionTitre critSelectTitre) {
-		this.critSelectTitre = critSelectTitre;
-	}
-
-	public CriteresSelectionVille getCritSelectVille() {
-		return critSelectVille;
-	}
-
-	public void setCritSelectVille(CriteresSelectionVille critSelectVille) {
-		this.critSelectVille = critSelectVille;
-	}
-
-	public CriteresSelectionTexte getCritSelectTexte() {
-		return critSelectTexte;
-	}
-
-	public void setCritSelectTexte(CriteresSelectionTexte critSelectTexte) {
-		this.critSelectTexte = critSelectTexte;
+		this.compteLbc = compteLbc;
 	}
 
 
-	// pour généner les annonces
 	public List<Add> getaddsProduced(){
 		return addsProduced;
 	}
 
+	// pour généner les annonces
 	public void generateAdds() {
 		for(int i=0;i<nbAddsToProduce;i++){
 			int indiceImage = 0, indiceTexte = 0, indiceTitle = 0, indiceTown = 0;
@@ -132,9 +64,9 @@ public class AddsGenerator {
 				indiceImage = i%nbImages;
 			}
 			addsProduced.add(new Add(titleSource.get(indiceTitle), 
-							texteSource.get(indiceTexte), 
-							communeSource.get(indiceTown), 
-							imageSource[indiceImage]));
+					texteSource.get(indiceTexte), 
+					communeSource.get(indiceTown), 
+					imageSource[indiceImage]));
 		}
 	}
 
@@ -185,7 +117,6 @@ public class AddsGenerator {
 	}
 
 	private void setCommuneFromSql() {
-		critSelectVille = new CriteresSelectionVille();
 		CommuneDao communeDao = new CommuneDao();
 		communeSource = communeDao.findWithSelection(this.critSelectVille);
 	}
@@ -202,7 +133,7 @@ public class AddsGenerator {
 		setNbTextes();
 
 	}
-	
+
 	public void saveTexteXlsxInBdd(){
 		pathToAddsDirectory = PathToAdds.MINE.getPath();
 		setTexteFromXlsx();
@@ -241,7 +172,7 @@ public class AddsGenerator {
 			exception.printStackTrace();
 		}
 	}
-	
+
 	public void setTitleSource() {
 		switch (typeSourceTitles) {
 		case SQL:
@@ -276,7 +207,7 @@ public class AddsGenerator {
 
 			reader.close();
 			nbTitles = retour.size();
-			
+
 			this.titleSource= new ArrayList<Title>(); 
 			for(String[] title : retour){
 				titleSource.add(new Title(title[0]));
@@ -285,16 +216,18 @@ public class AddsGenerator {
 			System.out.println("Problème avec le fichier titre");
 			exception.printStackTrace();
 		}
-		
+
 	}
 
 	private void setTitleFromSql() {
-		// TODO Auto-generated method stub
+		TitreDao titleDao = new TitreDao();
+		titleSource = titleDao.findWithSelection(this.critSelectTitre, compteLbc);
 	}
 
 	private void setTexteFromSql() {
-		// TODO Auto-generated method stub
-		
+		TexteDao texteDao = new TexteDao();
+		texteSource = texteDao.findWithSelection(this.critSelectTexte, compteLbc);
+
 	}
 	//TODO faire qu'on puisse ajouter 2 images par annonce et peut être créer une classe image ?
 	public void setImage(){
@@ -305,6 +238,77 @@ public class AddsGenerator {
 		imageSource = children;
 	}
 
+	// set et getter 
+	public Source getTypeSourceTitles() {
+		return typeSourceTitles;
+	}
+	public void setTypeSourceTitles(Source typeSourceTitles) {
+		this.typeSourceTitles = typeSourceTitles;
+	}
+	public Source getTypeSourceTextes() {
+		return typeSourceTextes;
+	}
+	public void setTypeSourceTextes(Source typeSourceTextes) {
+		this.typeSourceTextes = typeSourceTextes;
+	}
+	public Source getTypeSourceCommunes() {
+		return typeSourceCommunes;
+	}
+	public void setTypeSourceCommunes(Source typeSourceCommunes) {
+		this.typeSourceCommunes = typeSourceCommunes;
+	}
+
+	public CritereSelectionTitre getCritSelectTitre() {
+		return critSelectTitre;
+	}
+
+	public void setCritSelectTitre(CritereSelectionTitre critSelectTitre) {
+		this.critSelectTitre = critSelectTitre;
+	}
+
+	public CriteresSelectionVille getCritSelectVille() {
+		return critSelectVille;
+	}
+
+	public void setCritSelectVille(CriteresSelectionVille critSelectVille) {
+		this.critSelectVille = critSelectVille;
+	}
+
+	public CriteresSelectionTexte getCritSelectTexte() {
+		return critSelectTexte;
+	}
+
+	public void setCritSelectTexte(CriteresSelectionTexte critSelectTexte) {
+		this.critSelectTexte = critSelectTexte;
+	}
+
+	public List<Title> getTitleSource() {
+		return titleSource;
+	}
+
+	public void setTitleSource(List<Title> titleSource) {
+		this.titleSource = titleSource;
+	}
+
+	public List<Texte> getTexteSource() {
+		return texteSource;
+	}
+
+	public void setTexteSource(List<Texte> texteSource) {
+		this.texteSource = texteSource;
+	}
+
+	public List<Commune> getCommuneSource() {
+		return communeSource;
+	}
+
+	public void setCommuneSource(List<Commune> communeSource) {
+		this.communeSource = communeSource;
+	}
+
+	public void setPathToAddsDirectory(String pathToAddsDirectory) {
+		this.pathToAddsDirectory = pathToAddsDirectory;
+	}
 
 
 }

@@ -3,19 +3,19 @@ package scraper;
 public class CompteLbc {
 	private String mail;
 	private String password;
-	private int idAdmin;
+	private int refCompte;
 	
 	public CompteLbc(String mail, String password) {
 		super();
 		this.mail = mail;
 		this.password = password;
-		idAdmin = -1;
+		refCompte = -1;
 	}
 	public CompteLbc(String mail, String password, int idAdmin) {
 		super();
 		this.mail = mail;
 		this.password = password;
-		this.idAdmin = idAdmin;
+		this.refCompte = idAdmin;
 	}
 	
 
@@ -35,12 +35,12 @@ public class CompteLbc {
 		this.password = password;
 	}
 
-	public int getIdAdmin() {
-		return idAdmin;
+	public int getRefCompte() {
+		return refCompte;
 	}
 
-	public void setIdAdmin(int idAdmin) {
-		this.idAdmin = idAdmin;
+	public void setRefCompte(int idAdmin) {
+		this.refCompte = idAdmin;
 	}
 	
 	

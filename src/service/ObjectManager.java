@@ -1,10 +1,10 @@
 package service;
 
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
+import exception.AgentLbcFailPublicationException;
 import fr.doodle.dao.CommuneDao;
 import fr.doodle.dao.CompteLbcDao;
 import scraper.Add;
@@ -13,15 +13,20 @@ import scraper.AgentLbc;
 import scraper.Commune;
 import scraper.CompteLbc;
 import scraper.CritereSelectionTitre;
+import scraper.CriteresSelectionTexte;
 import scraper.CriteresSelectionVille;
 import scraper.PathToAdds;
+import scraper.ResultsControl;
 import scraper.Source;
 import scraper.Texte;
 import scraper.Title;
+import scraper.TypeTexte;
+import scraper.TypeTitle;
 
 public class ObjectManager {
 
 	private int nbAddsToPublish;
+	private int nbAddsPublie;
 
 	private AgentLbc agentLbc;
 	private AddsGenerator addsGenerator;
@@ -40,14 +45,27 @@ public class ObjectManager {
 
 	private CritereSelectionTitre critSelectTitre;
 	private CriteresSelectionVille critSelectVille;
+	private CriteresSelectionTexte critSelectTexte;
 
 	private PathToAdds pathToAdds; 
 
-	private List<Add> addsReadyToSave;
+	private List<Add> addsFromLbc;
 	ListIterator<Add> itOnAddReadyTosave;
-
+	private boolean preparationOk;
+	private boolean savingOk; 
+	private boolean saveAddToSubmitLbcInBase;
 	// DAO
-	private CommuneDao comDao = new CommuneDao();;
+	private CommuneDao comDao = new CommuneDao();
+	// résultats contrôle
+	private ResultsControl results;
+	
+	public ResultsControl getResults() {
+		return results;
+	}
+
+	public List<Texte> getTextePasDansLabdd(){
+		return(addsSaver.getTextesPasDansLaBdd());
+	}
 
 	public void saveCodePostalAndNomCommuneNoCorrep(String idCommuneCorrespo) {
 		int idCommuneCorresp = Integer.parseInt(idCommuneCorrespo);
@@ -81,21 +99,21 @@ public class ObjectManager {
 
 		agentLbc.setUp();
 		agentLbc.connect();
-		this.addsReadyToSave = agentLbc.controlCompte(); // pour récupérer les annonces controlés
-		addsSaver = new AddsSaver(addsReadyToSave); // pour faire le liene entres les annonces Lbc et la bdd (mettre à jour les ref)
-		addsSaver.prepareAddsToSaving();
-		itOnAddReadyTosave = addsReadyToSave.listIterator();
+		this.addsFromLbc = agentLbc.controlCompte(); // pour récupérer les annonces controlés
+		addsSaver = new AddsSaver(addsFromLbc, compteInUse); // pour faire le liene entres les annonces Lbc et la bdd (mettre à jour les ref)
+		preparationOk = addsSaver.prepareAddsToSaving(compteInUse);
+		itOnAddReadyTosave = addsFromLbc.listIterator();
+		if(preparationOk){
+			savingOk = addsSaver.saveAnnonceFromLbcInBdd();
+			if(savingOk){
+				results = addsSaver.getResults();
+			}
+		}
 	}
-
-	// pour itérer sur les communes des adds prêtes à être sauvegardées
+	
+	// pour itérer sur les communes des adds récupéres du bon coin et prête à être sauvegarder
 	public Title nextTitleReadyTosave(){
 		return itOnAddReadyTosave.next().getTitle();
-	}
-	public Texte nextTexteReadyTosave() {
-		return itOnAddReadyTosave.next().getTexte();
-	}
-	public Texte previousTexteReadyTosave() {
-		return itOnAddReadyTosave.previous().getTexte();
 	}
 	
 	public Title previousTitleReadyTosave() {
@@ -109,7 +127,7 @@ public class ObjectManager {
 	public boolean hasNextAddReadyTosave(){	
 		boolean retour = itOnAddReadyTosave.hasNext();
 		if(!retour){
-			itOnAddReadyTosave = addsReadyToSave.listIterator();
+			itOnAddReadyTosave = addsFromLbc.listIterator();
 		}
 		return retour;
 	}
@@ -122,7 +140,13 @@ public class ObjectManager {
 		agentLbc.setUp();
 		agentLbc.connect();
 		agentLbc.goToFormDepot();
-		agentLbc.publish();
+		try{
+			agentLbc.publish();
+			this.nbAddsPublie = this.nbAddsToPublish;
+		}catch(AgentLbcFailPublicationException excep){
+			this.nbAddsPublie = excep.getIndiceAnnonceDechec()-1;
+		}
+		
 	}
 
 	public void setcommunes() {
@@ -143,8 +167,7 @@ public class ObjectManager {
 
 
 	public void createAddsGenerator(){
-		
-		addsGenerator = new AddsGenerator(nbAddsToPublish);
+		addsGenerator = new AddsGenerator(nbAddsToPublish, this.compteInUse);
 		addsGenerator.saveTexteXlsxInBdd();
 	}
 
@@ -166,7 +189,7 @@ public class ObjectManager {
 
 	public void setCompte(int identifiant){
 		for(CompteLbc compte : comptes){
-			if(compte.getIdAdmin() == identifiant){
+			if(compte.getRefCompte() == identifiant){
 				compteInUse = compte;
 				return;
 			}
@@ -190,7 +213,7 @@ public class ObjectManager {
 	}
 
 	public void createAgentLbc(int nbAddsToPublish){
-		agentLbc = new AgentLbc(compteInUse, nbAddsToPublish);
+		agentLbc = new AgentLbc(compteInUse, nbAddsToPublish, saveAddToSubmitLbcInBase);
 		setNbAddsToPublish(nbAddsToPublish);
 	}
 
@@ -277,8 +300,14 @@ public class ObjectManager {
 		return critSelectTitre;
 	}
 
-	public void setCritSelectTitre(CritereSelectionTitre critSelectTitre) {
-		this.critSelectTitre = critSelectTitre;
+	public void setCritSelectTitre(String typeTitle) {
+		this.critSelectTitre = new CritereSelectionTitre(TypeTitle.valueOf(typeTitle));
+		addsGenerator.setCritSelectTitre(this.critSelectTitre);
+	}
+	
+	public void setCritSelectTexte(String typeTexte) {
+		this.critSelectTexte = new CriteresSelectionTexte(TypeTexte.valueOf(typeTexte));
+		addsGenerator.setCritSelectTexte(this.critSelectTexte);
 	}
 
 	public PathToAdds getPathToAdds() {
@@ -309,6 +338,40 @@ public class ObjectManager {
 	public void setCommuneSourceType(Source communeSourceType) {
 		this.communeSourceType = communeSourceType;
 	}
+
+	public boolean isPreparationOk() {
+		return preparationOk;
+	}
+
+	public void setPreparationOk(boolean preparationOk) {
+		this.preparationOk = preparationOk;
+	}
+
+	public boolean isSavingOk() {
+		return savingOk;
+	}
+
+	public void setSavingOk(boolean savingOk) {
+		this.savingOk = savingOk;
+	}
+
+	public boolean isSaveAddToSubmitLbcInBase() {
+		return saveAddToSubmitLbcInBase;
+	}
+
+	public void setSaveAddToSubmitLbcInBase(boolean saveAddToSubmitLbcInBase) {
+		this.saveAddToSubmitLbcInBase = saveAddToSubmitLbcInBase;
+	}
+
+	public int getNbAddsPublie() {
+		return nbAddsPublie;
+	}
+
+	public void setNbAddsPublie(int nbAddsPublie) {
+		this.nbAddsPublie = nbAddsPublie;
+	}
+	
+	
 
 
 

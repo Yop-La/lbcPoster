@@ -47,6 +47,7 @@ public class MoteurConsole {
 			System.out.println("1 : Publier des annonces");
 			System.out.println("2 : Ajouter un nouveau compte LBC");
 			System.out.println("3 : Controler un compte LBC");
+			System.out.println("4 : Afficher un compte LBC");
 			System.out.println();
 			String saisie = Console.readString("Que voulez vous faire ?");
 			// Enregistrement du choix de l'utilisateur dans numéro
@@ -73,6 +74,10 @@ public class MoteurConsole {
 					continueBoucle = true;
 				}
 				break;
+			case "4":
+				afficherCompteLbc();
+				continueBoucle = true;
+				break;
 
 			case "ESC":
 				System.out.println("Fermeture de l'application ");
@@ -87,12 +92,26 @@ public class MoteurConsole {
 		}
 	}
 
+	private void afficherCompteLbc() {
+		manager.setComptes();
+		printManager.printCompte();
+
+	}
+
+
 	private void ControlCompteLbc() throws HomeException{
+		System.out.println("!! Attention !!\n"
+				+ "Bien attendre le passage de la modération lbc avant de contrôler les comptes");
 		choixDunCompte();
 		manager.createAgentLbc();
 		manager.lancerControlCompte();
 		ControlAdds();
-		throw new HomeException();
+		if(manager.isSavingOk()){
+			System.out.println("Les annonces de lbc ont bien été sauvegardés");
+			printManager.printResults();
+		}else{
+			System.out.println("Problème avec la sauvegarde des annonces : plus de 2 correspondances trouvés pour une annonce du bon coin");
+		}
 	}
 
 
@@ -101,6 +120,12 @@ public class MoteurConsole {
 		ControlCommunes();
 		ControlTitres();
 		ControlTextes();
+		if(manager.isPreparationOk()){
+			System.out.println("Toutes les annonces ont été parcourues et enregistrées");
+		}else{
+			System.out.println("Le contrôle des annonces a pris fin car certaines annonces ne correspondat à ce qu'il y a en bdd");
+			throw new HomeException();
+		}
 	}
 
 
@@ -123,21 +148,15 @@ public class MoteurConsole {
 
 	private void ControlTextes() throws HomeException {
 		System.out.println("**    COMPARAISON DES TEXTES SUR LBC À LA BDD   **");
-		while(manager.hasNextAddReadyTosave()){
-			boolean correspondance = printManager.toCompareTextes();
-			if(!correspondance){
-				String confirmation = readConsoleInput("^OK$", 
-						"En attente d'une intervention manuelle ! Mettez à jour la bdd. Tapez OK pour reprendre",
-						"Votre réponse", 
-						"doit être OK");
-				if(confirmation.equals("OK")){
-					manager.previousTexteReadyTosave();
-				}
-			}
+		boolean controlReussie = printManager.toControlTexte();
+		if(controlReussie){
+			System.out.println("Tout est ok avec les textes !");
+		}else{
+			System.out.println("Aucun texte(s) dans la bdd correspondant à ci dessus");
 		}
-		System.out.println("Tout est ok avec les textes !");
+
 	}
-	
+
 
 	private void ControlCommunes() throws HomeException{
 		System.out.println("**    COMPARAISON DES COMMUNES SUR LBC À LA BDD   **");
@@ -190,6 +209,7 @@ public class MoteurConsole {
 	private void publishAdd() throws HomeException{
 		System.out.println("------    MENU DE PUBLICATION DES ANNONCES   ------");
 		choixDunCompte();
+		printManager.doYouWantToSaveAddIndd();
 		String nbAnnonces = readConsoleInput("^[1-9]\\d*$", "Entrez le nb d'annonces à publier",
 				"Votre réponse", "doit être un entier positif");
 		manager.createAgentLbc(Integer.parseInt(nbAnnonces));
@@ -200,6 +220,7 @@ public class MoteurConsole {
 
 		System.out.println("Démarrage de la publication ...");
 		manager.lancerPublication();
+		printManager.printBilanPublication();
 
 		//String numDepart = readConsoleInput("^[1-9]\\d*$", "Entrez le numéro de l'annonce de départ",
 		//		"Votre réponse", "doit être un mdp LBC");
@@ -261,7 +282,7 @@ public class MoteurConsole {
 		manager.setCritSelectVille(bornInf, bornSup);
 	}
 
-
+	// pour poser la question : quelle type de source à utiliser ?
 	private String selectSource(String objectRelated)throws HomeException{
 		String renouvellez;
 		String strTypeSource;
@@ -324,8 +345,9 @@ public class MoteurConsole {
 	}
 
 
-	private void selectionTexteSql() {
-		// TODO Auto-generated method stub
+	private void selectionTexteSql() throws HomeException{
+		String typeTexteChoisie = printManager.chooseTypeTexte();
+		manager.setCritSelectTexte(typeTexteChoisie);
 
 	}
 
@@ -363,8 +385,9 @@ public class MoteurConsole {
 	}
 
 
-	private void selectionTitresSql() {
-		// TODO Auto-generated method stub
+	private void selectionTitresSql() throws HomeException{
+		String typeTitleChoisie = printManager.chooseTypeTitle();
+		manager.setCritSelectTitre(typeTitleChoisie);
 
 	}
 

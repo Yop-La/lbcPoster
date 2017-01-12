@@ -10,10 +10,14 @@ public class Add {
 	private Commune commune;
 	private File image;
 	private Calendar dateMiseEnLigne;
-	int nbJoursRestants;
-	int nbVues;
-	int nbMailsRecus;
-	int nbClickTel;
+	private int nbJoursRestants;
+	private int nbVues;
+	private int nbMailsRecus;
+	private int nbClickTel;
+	private CompteLbc compteLbc; // pour contenir la référence du compte associé à cette add
+	private int refAdd;
+	private int nbControle;
+	private EtatAdd etat;
 	
 	public Add(Title title, Texte texte, Commune commune, File image) {
 		super();
@@ -25,8 +29,22 @@ public class Add {
 	
 	public Add() {
 		super();
+		refAdd=-1;
 	}
 	
+	public Add(EtatAdd etatAdd) {
+		this.etat = etatAdd;
+	}
+
+	public Add(CompteLbc compteLbc2) {
+		this.compteLbc =compteLbc2;
+	}
+
+	public Add(EtatAdd etatAdd, CompteLbc compteLbc2) {
+		this.compteLbc =compteLbc2;
+		this.etat = etatAdd;
+	}
+
 	public String toString(){
 		String retour = commune.getNomCommuneInBase() +" : "+ commune.getCodePostal() +"\n"
 							+ " nb vues : " + nbVues + " | nb mails " + nbMailsRecus + " | nb clics " + nbClickTel
@@ -106,6 +124,43 @@ public class Add {
 	public void setNbClickTel(int nbClickTel) {
 		this.nbClickTel = nbClickTel;
 	}
+
+	public CompteLbc getCompteLbc() {
+		return compteLbc;
+	}
+
+	public void setCompteLbc(CompteLbc compteLbc) {
+		this.compteLbc = compteLbc;
+	}
+
+	public int getRefAdd() {
+		return refAdd;
+	}
+
+	public void setRefAdd(int refAdd) {
+		this.refAdd = refAdd;
+	}
+
+	public int getNbControle() {
+		return nbControle;
+	}
+
+	public void setNbControle(int nbControle) {
+		this.nbControle = nbControle;
+	}
+
+	public EtatAdd getEtat() {
+		return etat;
+	}
+
+	public void setEtat(EtatAdd etat) {
+		this.etat = etat;
+	}
+	
+	
+	
+	
+	
 
 	
 	

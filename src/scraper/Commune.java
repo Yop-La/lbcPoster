@@ -29,7 +29,7 @@ public class Commune {
 
 	public String toString(){
 		String retour="";
-		retour = "In base : "+nomCommuneInBase+" On Lbc : "+nomCommuneOnLbc;
+		retour = "In base : "+nomCommuneInBase;
 		return retour;
 	}
 	

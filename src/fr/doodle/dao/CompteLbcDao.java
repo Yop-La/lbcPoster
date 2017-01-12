@@ -31,7 +31,7 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 
 	@Override
 	public CompteLbc save(CompteLbc entity) {
-		if(entity.getIdAdmin() < 0){ // si l'admin n'exite pas en base, on l'insère
+		if(entity.getRefCompte() < 0){ // si l'admin n'exite pas en base, on l'insère
 			try(Connection maConnection = getConnection()){	
 				try(PreparedStatement addAdminStatement = 
 						maConnection.prepareStatement("INSERT INTO compte_lbc(mail, password) "
@@ -41,8 +41,8 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 					addAdminStatement.executeUpdate();
 					ResultSet rs = addAdminStatement.getGeneratedKeys();
 					if (rs.next()) {
-						int idAdmin = rs.getInt(1);
-						entity.setIdAdmin(idAdmin);
+						int ref_compte = rs.getInt(1);
+						entity.setRefCompte(ref_compte);
 					}
 				}
 			}catch(SQLException e){
@@ -54,7 +54,7 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 						maConnection.prepareStatement("UPDATE compte_lbc set email_admin = ?, password = ? where id_admin= ?")){
 					updateAdminStatement.setString(1, entity.getMail());
 					updateAdminStatement.setString(2, entity.getPassword());
-					updateAdminStatement.setInt(3, entity.getIdAdmin());
+					updateAdminStatement.setInt(3, entity.getRefCompte());
 					updateAdminStatement.executeUpdate();
 				}
 			}catch(SQLException e){

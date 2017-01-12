@@ -14,9 +14,11 @@ import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
-import org.openqa.selenium.support.ui.WebDriverWait;
+
+import exception.AgentLbcFailPublicationException;
+import fr.doodle.dao.AddDao;
+import service.AddsSaver;
 
 
 public class AgentLbc{
@@ -26,14 +28,16 @@ public class AgentLbc{
 	private List<Add> addsToPublish;
 	private List<Add> addsControled;
 	private int nbAddsToPublish;
+	private boolean saveAddToSubmitLbcInBase;
 
 	private int numDepart=1;
 
 
 	// constructeur pour publier des annonces à partir fichiers CSV
-	public AgentLbc(CompteLbc compteLbc, int nbAddsToPublish) {
+	public AgentLbc(CompteLbc compteLbc, int nbAddsToPublish, boolean saveAddToSubmitLbcInBase) {
 		this.compteLBC = compteLbc;
 		this.nbAddsToPublish = nbAddsToPublish;
+		this.saveAddToSubmitLbcInBase = saveAddToSubmitLbcInBase;
 	}
 
 	public AgentLbc(CompteLbc compteLbc) {
@@ -104,106 +108,108 @@ public class AgentLbc{
 		}catch(Exception ex){
 			driver.get("https://www.leboncoin.fr/");
 		}
-
+		wait(2000);
 		driver.findElement(By.xpath("//header[@id='header']/section/section/aside/button")).click();
-
 		driver.findElement(By.name("st_username")).click();
 		driver.findElement(By.name("st_username")).sendKeys(compteLBC.getMail());
 		driver.findElement(By.name("st_passwd")).sendKeys(compteLBC.getPassword());
 		driver.findElement(By.xpath("//input[@value='Se connecter']")).click(); 
+		wait(2000);
 	}
 
 	public void goToFormDepot(){
-		driver.findElement(By.linkText("Déposer une annonce")).click(); 
+		driver.findElement(By.cssSelector(".value"));
+		driver.findElement(By.linkText("Déposer une annonce")).click();
+		wait(2000);
 	}
 
-	public void publish(){
-
+	public void publish() throws AgentLbcFailPublicationException{
+		AddDao addDao = new AddDao();
 		int indexAddPublication = numDepart-1;
-		try{ 
+		
 
 			do{
 				System.out.println("Annonce "+(indexAddPublication+1)+" en cours de publication");
 				Add addInPublication = addsToPublish.get(indexAddPublication);
+				try{ 
 				publishOneAdd(addInPublication);
+				}catch(Exception exception){
+					exception.printStackTrace();
+					throw new AgentLbcFailPublicationException(indexAddPublication);
+				}
 				indexAddPublication++;
+				if(saveAddToSubmitLbcInBase){
+					addInPublication.setCompteLbc(this.compteLBC);
+					addInPublication.setEtat(EtatAdd.onLine);
+					addDao.save(addInPublication);
+				}
 			}while(indexAddPublication!=nbAddsToPublish);
 			System.out.println("-- Publication terminé --");
 
 
-		}catch(Exception exception){
-			System.out.println("Erreur lors de la publication de l'annonce n°"+indexAddPublication+1);
-			exception.printStackTrace();
-		}
+		
 	}
 
 	private void publishOneAdd(Add addInPublication){
-
+		wait(4000);
 		// sélection de la catégorie
-		waitForWebElementToRespectCondition(By.cssSelector("div.grid-2 > div"),1).click();
-		new Select(waitForWebElementToRespectCondition(By.id("category"),1)).selectByVisibleText("Cours particuliers");
-
+		driver.findElement(By.cssSelector("div.grid-2 > div")).click();
+		new Select(driver.findElement(By.id("category"))).selectByVisibleText("Cours particuliers");
+		wait(2000);
 		// saisie du titre
-		waitForWebElementToRespectCondition(By.id("subject"),1).clear();
-		waitForWebElementToRespectCondition(By.id("subject"),1).sendKeys(addInPublication.getTitle().getTitre());
+		driver.findElement(By.id("subject")).clear();
+		driver.findElement(By.id("subject")).sendKeys(addInPublication.getTitle().getTitre());
 
 		// saisie du texte
-		waitForWebElementToRespectCondition(By.id("body"),1).clear();
-		waitForWebElementToRespectCondition(By.id("body"),1).sendKeys(addInPublication.getTexte().getCorpsTexteForPublication());
+		driver.findElement(By.id("body")).clear();
+		driver.findElement(By.id("body")).sendKeys(addInPublication.getTexte().getCorpsTexteForPublication());
 
 		// saisie de l'image
-		waitForWebElementToRespectCondition(By.id("image0"),3).sendKeys(addInPublication.getImage().getAbsolutePath());
+		driver.findElement(By.id("image0")).sendKeys(addInPublication.getImage().getAbsolutePath());
 
 		// saisie du lieu 
-		waitForWebElementToRespectCondition(By.id("location_p"),3).clear();
-		waitForWebElementToRespectCondition(By.id("location_p"),3).sendKeys(addInPublication.getCommune().getNomCommuneInBase());
-		waitForWebElementToRespectCondition(By.id("location_p"),3).sendKeys(Keys.LEFT);
-		waitForWebElementToRespectCondition(By.cssSelector("ul.location-list.visible"),1);
-		waitForWebElementToRespectCondition(By.id("location_p"),1).sendKeys(Keys.ENTER);
-
+		driver.findElement(By.id("location_p")).clear();
+		driver.findElement(By.id("location_p")).sendKeys(addInPublication.getCommune().getNomCommuneInBase());
+		driver.findElement(By.id("location_p")).sendKeys(Keys.LEFT);
+		driver.findElement(By.cssSelector("ul.location-list.visible"));
+		driver.findElement(By.id("location_p")).sendKeys(Keys.ENTER);
+		driver.findElement(By.cssSelector("#map_newad > div.layout:not(.hidden)"));
+		driver.findElement(By.cssSelector("#map_newad > div.layout.hidden"));
+		driver.findElement(By.id("address")).clear();
+		wait(1000);
+		//driver.findElement(By.id("phone")).clear();
+		//driver.findElement(By.id("phone")).sendKeys("0668332764");
+		wait(1000);
 		// soumission de l'annonce pour vérification
-		waitForWebElementToRespectCondition(By.id("address"),1).clear();
-		waitForWebElementToRespectCondition(By.id("newadSubmit"),1).click();
-
-
-
-		// check pour vérification visuelle
+		driver.findElement(By.id("address")).clear();
 		try{
-			clickAgainUntilExpectedCondition(
-					By.cssSelector("h2.title.toggleElement"), 
-					By.cssSelector("h2.title.toggleElement.active"),
-					4000, 
-					1000);			
-		}catch(TimeoutException timeOut){// si time out exception généré c'est que l'annonce n'a surement pas été validé
-			waitForWebElementToRespectCondition(By.id("address"),1).clear();
-			waitForWebElementToRespectCondition(By.id("newadSubmit"),1).click();
-		}
-
-		try{
-			Thread.sleep(10000); // pour avoir le temps de vérifier l'annonce manuellement
+			Thread.sleep(1000); // pour avoir le temps de vérifier l'annonce manuellement
 		}catch(Exception exception){
 			exception.printStackTrace();
 		}
+		driver.findElement(By.id("newadSubmit")).click();
+		wait(2000);
 
-		// acceptation des CG
+		// check pour vérification visuelle
+		try{
+			driver.findElement(By.cssSelector("h2.title.toggleElement")).click();// pour controler qu'on est sur la bonne page
 
-		WebElement checkBox = waitForWebElementToRespectCondition(By.id("accept_rule"),1);
-		do{
-			checkBox.click();
-		}while(!checkBox.isSelected());
+		}catch(TimeoutException timeOut){// si time out exception généré c'est que l'annonce n'a surement pas été validé
+			driver.findElement(By.id("address")).clear();
 
+			driver.findElement(By.id("newadSubmit")).click();
+		}
+		wait(4000);
+
+		driver.findElement(By.id("accept_rule")).click();
+		wait(4000);
 		// validation finale de l'annonce
 
-		waitForWebElementToRespectCondition(By.id("lbc_submit"),1).click();
-
+		driver.findElement(By.id("lbc_submit")).click();
+		wait(5000);
 		// retour à la page de dépôt des annonces
 
-		clickAgainUntilExpectedCondition(
-				By.linkText("Déposer une annonce"), 
-				By.cssSelector("div.grid-2 > div"),
-				4000, 
-				1000);
-
+		driver.findElement(By.cssSelector(".headerNav_main > li:nth-child(2) > a:nth-child(1)")).click();
 	}
 
 
@@ -259,8 +265,8 @@ public class AgentLbc{
 				String addLink = enteteAdd.findElement(By.cssSelector("a")).getAttribute("href");
 				addLinks.add(addLink);
 				indexAddToControl++;
-				/*	if(indexAddToControl==5)
-					break;*/
+				if(indexAddToControl==3)
+					break;
 			}
 
 			// on parcoure ensuite les annonces une à une pour récupérer titre, textes et ville
@@ -298,9 +304,9 @@ public class AgentLbc{
 				texteOnLbc.setCorpsTexteOnLbc(texte);
 				add.setTexte(texteOnLbc);
 				System.out.println("---- Add n°"+(i+1+(indicePageInControl-1)*30)+" controlé -----");
-				/*	if(indexAddToControl==4){
+				if(indexAddToControl==2){
 					break;
-				}*/
+				}
 			}
 			addsControled.addAll(addsOnPageInControl);
 			//pour se rendre sur le page n° indicePage des annonces
@@ -322,51 +328,26 @@ public class AgentLbc{
 				allAddsControled =true;
 			}
 			indicePageInControl ++;
+			allAddsControled =true;
+
 		}
 		this.addsControled = addsControled;
 		return addsControled;
 	}
-	WebElement waitForWebElementToRespectCondition(By by, int expectedCondition ){
-		WebElement myDynamicElement=null;
-		switch(expectedCondition){
-		case 1:
-			myDynamicElement = (new WebDriverWait(driver, 30))
-			.until(ExpectedConditions.elementToBeClickable(by));	
-			break;
-		case 2:
-			myDynamicElement = (new WebDriverWait(driver, 30))
-			.until(ExpectedConditions.visibilityOfElementLocated(by));
-			break;
-		case 3:
-			myDynamicElement = (new WebDriverWait(driver, 30))
-			.until(ExpectedConditions.presenceOfElementLocated(by));
-			break;
-		}
-		return myDynamicElement;
-	}
-
-	public void clickAgainUntilExpectedCondition(By elementToClick, By elementToWait,int timeToWait, int pas){
-		for (int second = 0;; second++) {
-			waitForWebElementToRespectCondition(elementToClick,2).click();
-			try{
-				Thread.sleep(timeToWait);
-				waitForWebElementToRespectCondition(elementToWait,1);
-				break;
-			}catch(Exception exception){
-				timeToWait+=pas;
-				System.out.println("Condition attendu pas valide. Temps d'attente prochain : "+timeToWait);
-				if(timeToWait>20000){
-					System.out.println(" Temps dépassé ! impossible de respecter la condition ! ");
-				}
-			}
+	private void wait(int ms){
+		try{
+			Thread.sleep(ms); // pour avoir le temps de vérifier l'annonce manuellement
+		}catch(Exception exception){
+			exception.printStackTrace();
 		}
 	}
-
-
-
-
-
-
-
-
 }
+
+
+
+
+
+
+
+
+
