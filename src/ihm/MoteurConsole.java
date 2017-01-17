@@ -1,10 +1,9 @@
 package ihm;
 
+import java.io.File;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 import exception.HomeException;
 import fr.doodle.dao.CompteLbcDao;
@@ -20,10 +19,32 @@ public class MoteurConsole {
 
 	public static void main(String[] args) {
 
+	
+/*
+		do{
+			Scanner in = new Scanner(System.in);
+			String newLine = in.nextLine();
+			Pattern p = Pattern.compile("^((\\S*)|(\\s)),((\\d*)|(\\s)),((\\d*)|(\\s))$");
+			// création d'un moteur de recherche
+			Matcher m = p.matcher(newLine);
+			// lancement de la recherche de toutes les occurrences
+			boolean b = m.matches();
+			// si recherche fructueuse
+			if(b) {
+				// pour chaque groupe
+				for(int i=0; i <= m.groupCount(); i++) {
+					// affichage de la sous-chaîne capturée
+					System.out.println("Groupe " + i + " : " + m.group(i));
+				}
+				String[] elementsRequete = newLine.split(",");
+				System.out.println(elementsRequete[0].toLowerCase()+".");
+				System.out.println(elementsRequete[1]+".");
+				System.out.println(elementsRequete[2]+".");
+			}
+		}while(true);
+*/
 		MoteurConsole console = new MoteurConsole();
 		console.acceuil();
-
-
 	}
 
 
@@ -48,6 +69,7 @@ public class MoteurConsole {
 			System.out.println("2 : Ajouter un nouveau compte LBC");
 			System.out.println("3 : Controler un compte LBC");
 			System.out.println("4 : Afficher un compte LBC");
+			System.out.println("5 : Enregistrer des nouveaux textes dans la bdd");
 			System.out.println();
 			String saisie = Console.readString("Que voulez vous faire ?");
 			// Enregistrement du choix de l'utilisateur dans numéro
@@ -78,7 +100,13 @@ public class MoteurConsole {
 				afficherCompteLbc();
 				continueBoucle = true;
 				break;
-
+			case "5":
+				try {
+					addNewTextInBdd();
+				} catch (HomeException homeException) {
+					continueBoucle = true;
+				}
+				break;
 			case "ESC":
 				System.out.println("Fermeture de l'application ");
 				return;
@@ -92,6 +120,15 @@ public class MoteurConsole {
 		}
 	}
 
+	private void addNewTextInBdd() throws HomeException{
+		System.out.println("------    AJOUT DE TEXTES À LA BDD   ------");
+		File path = printManager.selectFileWithTexte();
+		String typeTexte = printManager.chooseTypeTexte();
+		manager.addNewTextInBdd(path, typeTexte);
+		System.out.println("Textes bien enregistrés dans la bdd");
+	}
+
+
 	private void afficherCompteLbc() {
 		manager.setComptes();
 		printManager.printCompte();
@@ -101,97 +138,72 @@ public class MoteurConsole {
 
 	private void ControlCompteLbc() throws HomeException{
 		System.out.println("!! Attention !!\n"
-				+ "Bien attendre le passage de la modération lbc avant de contrôler les comptes");
+				+ "Bien attendre le passage de la modération lbc avant de contrôler les comptes"
+				+ "\nFaire ce contrôle deux jours après le passage de la modération");
 		choixDunCompte();
 		manager.createAgentLbc();
-		manager.lancerControlCompte();
-		ControlAdds();
-		if(manager.isSavingOk()){
+		manager.scanAddsOnLbc();
+
+
+		boolean texteAndTitleOnlineReferenced;
+		System.out.println("Vérification des correspondances entre les annonces en ligne et la bdd");
+		do{
+			texteAndTitleOnlineReferenced = manager.isTexteAndTitleOnlineReferenced();
+			if(!texteAndTitleOnlineReferenced){
+				System.out.println("Il y a des textes et des titres en ligne non référencés !");
+			}else{
+				System.out.println("Tous les textes et les titres sont référencés");
+			}
+			printManager.toLinkTexteAndTitleWhitoutRef();
+		}while(!texteAndTitleOnlineReferenced);
+		boolean addsOnlineHasMoreThanOneReference;
+		System.out.println("Vérification que les annonces en ligne soient référencées qu'une seule fois dans la bdd");
+
+		do{
+			addsOnlineHasMoreThanOneReference = manager.hasAddsWithMultipleReferenced();// vaudra vrai si chaque annonce a une unique correspondance en bdd
+			if(addsOnlineHasMoreThanOneReference){
+				System.out.println("Il y a des annonces avec plusieurs correspondances !");
+				printManager.toSolveMultipleAddMatch();
+			}else{
+				System.out.println("Toutes les annonces en lignes sont référencés au plus une fois");
+			}
+
+		}while(addsOnlineHasMoreThanOneReference);
+		boolean readyToSave;
+
+		do{
+			// pour les adds non référencés, on doit s'assurer que la commune en ligne est pas dans la bdd
+			// et mettre cette ref de commune dans les adds non référencés pour pouvoir les sauvegarder
+			if(manager.hasAddsNotReferencedWithCommuneNotReferenced()){
+				System.out.println("Il y a des annonces non référencés \n"
+						+ "ce sont des annonces normalement insérés sans ce robot (ou bien des erreurs)"
+						+ " Il n'y a donc aucune trace de l'annonce soumise en base"
+						+ " et il reste donc normalement plus qu'à lié la commune de cette "
+						+ " annnonce à la base pour pouvoir la sauvegarder car titre et texte sont référencés");
+				printManager.toSolveAddsNotReferencedWithCommuneNotReferenced();
+			}else{
+				System.out.println("Il n'y a pas d'annonces en ligne non référencés avec des communes sans ref");
+			}
+		}while(manager.hasAddsNotReferencedWithCommuneNotReferenced());
+
+		if(manager.getAddsSaver().areAddsReadyToSave()){
+			System.out.println("Toutes les éléments des annonces lbc ont une correspondance en bdd et une seule");
+			System.out.println("De même chaque annonce en ligne a une unique ref en base (sauf celles pas publiés avec le robot)");
+			System.out.println("---- Gestion de la correspondance des communes des annonces pas référencés entre la Bdd et LeBonCoin ----");
+			printManager.gererCorrepondanceCommunes(manager.getAddsSaver().getAddsNotReferencedWithCommuneNotReferenced());
+			manager.saveAddsFromScanOfLbc();
+			System.out.println("---- Gestion de la correspondance des communes des annonces référencés en ligne entre la Bdd et LeBonCoin ----");
+			printManager.gererCorrepondanceCommunes(manager.getAddsSaver().getAddsStillOnline());
 			System.out.println("Les annonces de lbc ont bien été sauvegardés");
 			printManager.printResults();
 		}else{
-			System.out.println("Problème avec la sauvegarde des annonces : plus de 2 correspondances trouvés pour une annonce du bon coin");
+			System.out.println("Les annonces sont pas prêtes à être sauvegardés");
 		}
-	}
 
 
-	private void ControlAdds() throws HomeException{
-		System.out.println("------    CONTRÔLE DES ANNONCES SUR LBC   ------");
-		ControlCommunes();
-		ControlTitres();
-		ControlTextes();
-		if(manager.isPreparationOk()){
-			System.out.println("Toutes les annonces ont été parcourues et enregistrées");
-		}else{
-			System.out.println("Le contrôle des annonces a pris fin car certaines annonces ne correspondat à ce qu'il y a en bdd");
-			throw new HomeException();
-		}
-	}
-
-
-	private void ControlTitres() throws HomeException {
-		System.out.println("**    COMPARAISON DES TITRES SUR LBC À LA BDD   **");
-		while(manager.hasNextAddReadyTosave()){
-			boolean correspondance = printManager.toCompareTitles();
-			if(!correspondance){
-				String confirmation = readConsoleInput("^OK$", 
-						"En attente d'une intervention manuelle ! Mettez à jour la bdd. Tapez OK pour reprendre",
-						"Votre réponse", 
-						"doit être OK");
-				if(confirmation.equals("OK")){
-					manager.previousTitleReadyTosave();
-				}
-			}
-		}
-		System.out.println("Tout est ok avec les titres !");
-	}
-
-	private void ControlTextes() throws HomeException {
-		System.out.println("**    COMPARAISON DES TEXTES SUR LBC À LA BDD   **");
-		boolean controlReussie = printManager.toControlTexte();
-		if(controlReussie){
-			System.out.println("Tout est ok avec les textes !");
-		}else{
-			System.out.println("Aucun texte(s) dans la bdd correspondant à ci dessus");
-		}
 
 	}
 
-
-	private void ControlCommunes() throws HomeException{
-		System.out.println("**    COMPARAISON DES COMMUNES SUR LBC À LA BDD   **");
-		while(manager.hasNextAddReadyTosave()){
-			boolean pasDeCorespBddLbc = printManager.toCompareCommunes(manager.nextCommuneReadyTosave());
-			if(pasDeCorespBddLbc){
-
-				String idCommuneCorrespo;
-				do{
-					String nomCom = readConsoleInput("^.{3,}$", 
-							"Saisir le nom de la commune qui correspond à celle du bon coin (pour la trouver dans la bdd) :",
-							"Votre réponse", 
-							"doit faire au moins 3 caractères");
-					printManager.searchResults(nomCom);
-					idCommuneCorrespo = readConsoleInput("^\\d+$|^non$", 
-							"Saisir l'identifiant de la commune qui correspond à celle du bon coin ou non pour refaire une recherche :",
-							"Votre réponse", 
-							"doit être un entier ou \"non\"");
-					if(!idCommuneCorrespo.equals("non")){
-						String confirmation = readConsoleInput("^oui$|^non$", 
-								"Confirmez vous votre choix d'identifiant : "+idCommuneCorrespo+" ?",
-								"Votre réponse", 
-								"doit être un entier oui ou non");
-						if(confirmation.equals("non")){
-							idCommuneCorrespo = "non";
-						}
-					}
-				}while(idCommuneCorrespo.equals("non"));
-				manager.saveCodePostalAndNomCommuneNoCorrep(idCommuneCorrespo);
-				System.out.println("Correspondance corrigé");
-			}
-			manager.saveCodePostal();// pour mettre à jour le code postal de la commune si pas déjà dans la bdd
-		}
-		System.out.println("Tout est ok avec les communes");
-	}
 
 
 	private void addNewCompteLbc() throws HomeException {
@@ -214,27 +226,52 @@ public class MoteurConsole {
 				"Votre réponse", "doit être un entier positif");
 		manager.createAgentLbc(Integer.parseInt(nbAnnonces));
 		manager.createAddsGenerator();
-		selectionTitres();
-		selectionTextes();
-		selectionCommunes();
-
+		boolean reglageParDefaut = useReglageByDefault();
+		selectionTitres(reglageParDefaut);
+		selectionTextes(reglageParDefaut);
+		selectionCommunes(reglageParDefaut);
+		selectionImages(reglageParDefaut);
 		System.out.println("Démarrage de la publication ...");
-		manager.lancerPublication();
-		printManager.printBilanPublication();
+		manager.genererEtPublier();
 
-		//String numDepart = readConsoleInput("^[1-9]\\d*$", "Entrez le numéro de l'annonce de départ",
-		//		"Votre réponse", "doit être un mdp LBC");
+		// pour gérer les correspondances des communes (faire en sorte que la commune soumise soit bien en base)
+		printManager.gererCorrepondanceCommunes(manager.getAddsPublieAvtMode());
+		// pour afficher le nb d'annones soumises
+		printManager.printBilanPublication();
 	}
 
 
+	private boolean useReglageByDefault() throws HomeException{
+		String rep = readConsoleInput("^oui|non$", 
+				"Voulez vous utiliser les réglages par défaut",
+				"Votre réponse", "être oui ou non");
+		if(rep.equals("oui")){
+			return true;
+		}else{
+			return false;
+		}
 
-	private void selectionCommunes() throws HomeException{
+	}
+
+
+	private void selectionImages(boolean selectionImages) throws HomeException{
+		String path = "MINE";
+		if(!selectionImages)
+			path = selectPath(" les images");
+		manager.setPathToAdds(path);
+	}
+
+
+	private void selectionCommunes(boolean reglageParDefaut) throws HomeException{
 		String renouvellez;
 		do{
-			String strTypeSource = selectSource("communes");
+			String strTypeSource="SQL";
+			if(!reglageParDefaut){
+				strTypeSource = selectSource("communes");
+			}
 			manager.setCommuneSourceType(strTypeSource);
 
-			switch (manager.getCommuneSourceType()) {
+			switch (manager.getAddsGenerator().getTypeSourceCommunes()) {
 			case SQL:
 				selectionCommuneSql();
 				break;
@@ -301,11 +338,11 @@ public class MoteurConsole {
 		return strTypeSource;
 	}
 
-	private String selectPath()throws HomeException{
+	private String selectPath(String elementsAdds)throws HomeException{
 		String renouvellez;
 		String path;
 		do{
-			path = readConsoleInput("^MINE$|CLIENT", "Saisir le répertoire des annonces à utiliser",
+			path = readConsoleInput("^MINE$|CLIENT", "Saisir le répertoire des annonces à utiliser pour les "+elementsAdds,
 					"Votre réponse", "doit être MINE ou CLIENT");
 			renouvellez = readConsoleInput("^oui|non", "Est ce bien ce répertoire : "+ path +""
 					+ " que vous voulez utiliser ? ",
@@ -315,15 +352,17 @@ public class MoteurConsole {
 	}
 
 
-	private void selectionTextes() throws HomeException {
+	private void selectionTextes(boolean reglageParDefaut) throws HomeException {
 		String renouvellez;
 		do{
-			String strTypeSource = selectSource("textes");
+			String strTypeSource="SQL";
+			if(!reglageParDefaut)
+				strTypeSource = selectSource("textes");
 			manager.setTexteSourceType(strTypeSource);
 
-			switch (manager.getTexteSourceType()) {
+			switch (manager.getAddsGenerator().getTypeSourceTextes()) {
 			case SQL:
-				selectionTexteSql();
+				selectionTexteSql(reglageParDefaut);
 				break;
 			case XLSX:
 				selectionTextesXlsx();	
@@ -340,27 +379,31 @@ public class MoteurConsole {
 
 
 	private void selectionTextesXlsx() throws HomeException{
-		String path = selectPath();
+		String path = selectPath("les textes");
 		manager.setPathToAdds(path);	
 	}
 
 
-	private void selectionTexteSql() throws HomeException{
-		String typeTexteChoisie = printManager.chooseTypeTexte();
+	private void selectionTexteSql(boolean reglageParDefaut) throws HomeException{
+		String typeTexteChoisie="mes200TextesSoutienParMailScolaireAvecResa10jours";
+		if(!reglageParDefaut)
+			typeTexteChoisie = printManager.chooseTypeTexte();
 		manager.setCritSelectTexte(typeTexteChoisie);
 
 	}
 
 
-	private void selectionTitres() throws HomeException{
+	private void selectionTitres(boolean reglageParDefaut) throws HomeException{
 		String renouvellez;
 		do{
-			String strTypeSource = selectSource("titres");
+			String strTypeSource = "SQL";
+			if(!reglageParDefaut)
+				strTypeSource = selectSource("titres");
 			manager.setTitleSourceType(strTypeSource);
 
-			switch (manager.getTitleSourceType()) {
+			switch (manager.getAddsGenerator().getTypeSourceTitles()) {
 			case SQL:
-				selectionTitresSql();
+				selectionTitresSql(reglageParDefaut);
 				break;
 			case XLSX:
 				selectionTitresXlsx();	
@@ -380,13 +423,15 @@ public class MoteurConsole {
 
 
 	private void selectionTitresXlsx() throws HomeException{
-		String path = selectPath();
+		String path = selectPath("titres");
 		manager.setPathToAdds(path);
 	}
 
 
-	private void selectionTitresSql() throws HomeException{
-		String typeTitleChoisie = printManager.chooseTypeTitle();
+	private void selectionTitresSql(boolean reglageParDefaut) throws HomeException{
+		String typeTitleChoisie = "sebScolaire122";
+		if(!reglageParDefaut)
+			typeTitleChoisie = printManager.chooseTypeTitle();
 		manager.setCritSelectTitre(typeTitleChoisie);
 
 	}

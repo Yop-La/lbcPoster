@@ -7,7 +7,7 @@ import java.util.Date;
 public class Add {
 	private Title title;
 	private Texte texte;
-	private Commune commune;
+	private CommuneLink communeLink=new CommuneLink();
 	private File image;
 	private Calendar dateMiseEnLigne;
 	private int nbJoursRestants;
@@ -18,18 +18,18 @@ public class Add {
 	private int refAdd;
 	private int nbControle;
 	private EtatAdd etat;
+	private boolean addWithNotReferenced=true;
 	
-	public Add(Title title, Texte texte, Commune commune, File image) {
+	public Add(Title title, Texte texte, CommuneLink communeLink, File image) {
 		super();
 		this.title = title;
 		this.texte = texte;
-		this.commune = commune;
+		this.communeLink = communeLink;
 		this.image = image;
 	}
 	
 	public Add() {
 		super();
-		refAdd=-1;
 	}
 	
 	public Add(EtatAdd etatAdd) {
@@ -43,14 +43,6 @@ public class Add {
 	public Add(EtatAdd etatAdd, CompteLbc compteLbc2) {
 		this.compteLbc =compteLbc2;
 		this.etat = etatAdd;
-	}
-
-	public String toString(){
-		String retour = commune.getNomCommuneInBase() +" : "+ commune.getCodePostal() +"\n"
-							+ " nb vues : " + nbVues + " | nb mails " + nbMailsRecus + " | nb clics " + nbClickTel
-							+ title.getTitre() + "\n" 
-							+ texte.getCorpsTexteOnLbc(); 
-		return retour;
 	}
 
 	public Title getTitle() {
@@ -67,14 +59,6 @@ public class Add {
 
 	public void setTexte(Texte texte) {
 		this.texte = texte;
-	}
-
-	public Commune getCommune() {
-		return commune;
-	}
-
-	public void setCommune(Commune commune) {
-		this.commune = commune;
 	}
 
 	public File getImage() {
@@ -155,6 +139,22 @@ public class Add {
 
 	public void setEtat(EtatAdd etat) {
 		this.etat = etat;
+	}
+
+	public CommuneLink getCommuneLink() {
+		return communeLink;
+	}
+
+	public void setCommuneLink(CommuneLink communeLink) {
+		this.communeLink = communeLink;
+	}
+
+	public boolean isAddNotReferenced() {
+		return addWithNotReferenced;
+	}
+
+	public void setAddNotReferenced(boolean addNotReferenced) {
+		this.addWithNotReferenced = addNotReferenced;
 	}
 	
 	

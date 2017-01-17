@@ -1,68 +1,46 @@
 package scraper;
 
+import org.apache.commons.lang3.StringUtils;
+
+import fr.doodle.dao.CommuneDao;
+
 public class Commune {
 	private String codeDep;
 	private String codeCommune;
-	private String nomCommuneInBase;
-	private String nomCommuneOnLbc;
+	private String nomCommune;
 	private Float popTotale;
 	private String codeReg;
 	private String nomReg;
-	private String CodePostal;
+	private String codePostal="";
 	private int refCommune;
-	private boolean isCodePostalFromBdd;
 	
 	public Commune(){
 	}
 	
-	public Commune(String codeDep, String codeCommune, String nomCommuneInBase, Float popTotale, String codeReg,
+	public Commune(String codeDep, String codeCommune, String nomCommune, Float popTotale, String codeReg,
 			String nomReg, int refCommune, String codePostal) {
 		super();
 		this.codeDep = codeDep;
 		this.codeCommune = codeCommune;
-		this.nomCommuneInBase = nomCommuneInBase;
+		this.nomCommune = nomCommune;
 		this.popTotale = popTotale;
 		this.codeReg = codeReg;
 		this.nomReg = nomReg;
 		this.refCommune = refCommune;
+		this.codePostal = codePostal;
 	}
 
 	public String toString(){
 		String retour="";
-		retour = "In base : "+nomCommuneInBase;
+		retour = "In base : "+nomCommune;
 		return retour;
 	}
-	
-	public boolean isCodePostalFromBdd() {
-		return isCodePostalFromBdd;
-	}
 
-	public void setCodePostalFromBdd(boolean isCodePostalFromBdd) {
-		this.isCodePostalFromBdd = isCodePostalFromBdd;
-	}
-
-	public Commune(String nomCommuneOnLbc) {
+	public Commune(String nomCommune) {
 		super();
-		this.nomCommuneOnLbc = nomCommuneOnLbc;
-
+		this.nomCommune = nomCommune;
 	}
 	
-	
-	public int getRefCommune() {
-		return refCommune;
-	}
-
-	public void setRefCommune(int refCommune) {
-		this.refCommune = refCommune;
-	}
-
-	public String getCodePostal() {
-		return CodePostal;
-	}
-
-	public void setCodePostal(String codePostal) {
-		CodePostal = codePostal;
-	}
 
 	public String getCodeDep() {
 		return codeDep;
@@ -95,22 +73,48 @@ public class Commune {
 		this.nomReg = nomReg;
 	}
 
-	public String getNomCommuneInBase() {
-		return nomCommuneInBase;
+
+
+	public String getNomCommune() {
+		return nomCommune;
 	}
 
-	public void setNomCommuneInBase(String nomCommuneInBase) {
-		this.nomCommuneInBase = nomCommuneInBase;
+	public void setNomCommune(String nomCommune) {
+		this.nomCommune = nomCommune;
 	}
 
-	public String getNomCommuneOnLbc() {
-		return nomCommuneOnLbc;
+	public String getCodePostal() {
+		return codePostal;
 	}
 
-	public void setNomCommuneOnLbc(String nomCommuneOnLbc) {
-		this.nomCommuneOnLbc = nomCommuneOnLbc;
+	public void setCodePostal(String codePostal) {
+		this.codePostal = codePostal;
+	}
+
+	public int getRefCommune() {
+		return refCommune;
+	}
+
+	public void setRefCommune(int refCommune) {
+		this.refCommune = refCommune;
 	}
 	
+	public void printCommune() {
+		System.out.println("  ---- ref commune : "+getRefCommune()+" ---- ");
+		System.out.println("    - nom commune : "+getNomCommune());
+		System.out.println("    - code dep : "+getCodeDep());
+		System.out.println("    - code commune : "+getCodeCommune());
+		System.out.println("    - population : "+getPopTotale());
+		System.out.println("    - code reg : "+getCodeReg());
+		System.out.println("    - nom reg : "+getNomReg());
+		System.out.println("    - code postal : "+getCodePostal());
+	}
+
+	public void updateCodePostal() {
+		CommuneDao communeDao = new CommuneDao();
+		communeDao.updateCodePostal(this);
+	}
+
 	
 	
 }

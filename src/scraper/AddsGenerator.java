@@ -49,6 +49,11 @@ public class AddsGenerator {
 	}
 
 
+	public AddsGenerator() {
+		// TODO Auto-generated constructor stub
+	}
+
+
 	public List<Add> getaddsProduced(){
 		return addsProduced;
 	}
@@ -63,9 +68,11 @@ public class AddsGenerator {
 				indiceTown = i%nbTowns;
 				indiceImage = i%nbImages;
 			}
+			CommuneLink communeLink = new CommuneLink();
+			communeLink.submit=communeSource.get(indiceTown);
 			addsProduced.add(new Add(titleSource.get(indiceTitle), 
 					texteSource.get(indiceTexte), 
-					communeSource.get(indiceTown), 
+					communeLink, 
 					imageSource[indiceImage]));
 		}
 	}
@@ -134,15 +141,7 @@ public class AddsGenerator {
 
 	}
 
-	public void saveTexteXlsxInBdd(){
-		pathToAddsDirectory = PathToAdds.MINE.getPath();
-		setTexteFromXlsx();
-		TexteDao texteDao = new TexteDao();
-		for(Texte texte : this.texteSource){
-			texte.setTypeTexte(TypeTexte.mes150TextesSoutienParMailScolaire);
-			texteDao.save(texte);
-		}
-	}
+
 
 	private void setNbTextes() {
 		nbTextes = texteSource.size();
@@ -168,7 +167,37 @@ public class AddsGenerator {
 				texteSource.add(new Texte(texte[0]));
 			}
 		}catch(Exception exception){
-			System.out.println("Problème avec le fichier titre");
+			System.out.println("Problème avec le fichier texte");
+			exception.printStackTrace();
+		}
+	}
+
+	public void saveTexteFromXlsx(File file, String typeTexte){
+		try{
+			
+			List<String[]> contenuCsv = new ArrayList<String[]>();
+			File outputFile = new File("./texte_csv_tampon.csv");
+			XlstoCSV.xls(file, outputFile);
+			CSVReader reader = new CSVReaderBis(new FileReader(outputFile.getAbsolutePath()));
+			Iterator<String[]> it = reader.iterator();
+			while(it.hasNext()){
+				String[] line = it.next();
+				if(!line[0].equals("")){
+					contenuCsv.add(line);
+				}
+			}
+			reader.close();
+			TexteDao texteDao = new TexteDao();
+			for(String[] texte : contenuCsv){
+				Texte texteFromXlsx = new Texte();
+				texteFromXlsx.setCorpsTexteInBase(texte[0]);
+				texteFromXlsx.setTypeTexte(TypeTexte.valueOf(typeTexte));
+				System.out.println(texteFromXlsx);
+				texteDao.save(texteFromXlsx);
+				
+			}
+		}catch(Exception exception){
+			System.out.println("Problème avec le fichier de chemin : "+file.getAbsolutePath());
 			exception.printStackTrace();
 		}
 	}

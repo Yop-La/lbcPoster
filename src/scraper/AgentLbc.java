@@ -7,7 +7,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.TimeoutException;
@@ -18,7 +20,6 @@ import org.openqa.selenium.support.ui.Select;
 
 import exception.AgentLbcFailPublicationException;
 import fr.doodle.dao.AddDao;
-import service.AddsSaver;
 
 
 public class AgentLbc{
@@ -27,10 +28,10 @@ public class AgentLbc{
 	private WebDriver driver;
 	private List<Add> addsToPublish;
 	private List<Add> addsControled;
+	private List<Add> beforeModeration = new ArrayList<Add>();
 	private int nbAddsToPublish;
 	private boolean saveAddToSubmitLbcInBase;
-
-	private int numDepart=1;
+	JavascriptExecutor jse;
 
 
 	// constructeur pour publier des annonces à partir fichiers CSV
@@ -75,17 +76,12 @@ public class AgentLbc{
 	public void setNbAddsToPublish(int nbAddsToPublish) {
 		this.nbAddsToPublish = nbAddsToPublish;
 	}
-	public int getNumDepart() {
-		return numDepart;
-	}
-	public void setNumDepart(int numDepart) {
-		this.numDepart = numDepart;
-	}
 
 	public void setUp(){
 		try{
 			driver = new FirefoxDriver();
-			driver.manage().timeouts().implicitlyWait(50, TimeUnit.SECONDS);
+			jse = (JavascriptExecutor)driver;
+			driver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
 			driver.manage().timeouts().pageLoadTimeout(50, TimeUnit.SECONDS);
 		}catch(Exception excep){
 			System.out.println("Problème au moment du setup");
@@ -123,70 +119,88 @@ public class AgentLbc{
 		wait(2000);
 	}
 
-	public void publish() throws AgentLbcFailPublicationException{
+	public List<Add> publish() throws AgentLbcFailPublicationException{
 		AddDao addDao = new AddDao();
-		int indexAddPublication = numDepart-1;
-		
+		int indexAddPublication = 0;
 
-			do{
-				System.out.println("Annonce "+(indexAddPublication+1)+" en cours de publication");
-				Add addInPublication = addsToPublish.get(indexAddPublication);
-				try{ 
+
+		for(Add addInPublication : addsToPublish){
+			System.out.println("Annonce "+(indexAddPublication+1)+" en cours de publication");
+			try{ 
 				publishOneAdd(addInPublication);
-				}catch(Exception exception){
-					exception.printStackTrace();
-					throw new AgentLbcFailPublicationException(indexAddPublication);
-				}
-				indexAddPublication++;
-				if(saveAddToSubmitLbcInBase){
-					addInPublication.setCompteLbc(this.compteLBC);
-					addInPublication.setEtat(EtatAdd.onLine);
-					addDao.save(addInPublication);
-				}
-			}while(indexAddPublication!=nbAddsToPublish);
-			System.out.println("-- Publication terminé --");
-
-
-		
+				this.beforeModeration.add(addInPublication);
+			}catch(Exception exception){
+				exception.printStackTrace();
+				AgentLbcFailPublicationException excep = new AgentLbcFailPublicationException(indexAddPublication, beforeModeration);
+				throw excep;
+			}
+			indexAddPublication++;
+			if(saveAddToSubmitLbcInBase){
+				addInPublication.setCompteLbc(this.compteLBC);
+				addInPublication.setEtat(EtatAdd.enAttenteModeration);
+				addDao.save(addInPublication,false);
+			}
+		}
+		System.out.println("-- Publication terminé --");
+		return(beforeModeration);
 	}
 
 	private void publishOneAdd(Add addInPublication){
-		wait(4000);
-		// sélection de la catégorie
-		driver.findElement(By.cssSelector("div.grid-2 > div")).click();
-		new Select(driver.findElement(By.id("category"))).selectByVisibleText("Cours particuliers");
 		wait(2000);
+		driver.findElement(By.id("subject")).click();
+		// sélection de la catégorie
+		new Select(driver.findElement(By.id("category"))).selectByVisibleText("Cours particuliers");
 		// saisie du titre
+		driver.findElement(By.id("subject")).click();
 		driver.findElement(By.id("subject")).clear();
 		driver.findElement(By.id("subject")).sendKeys(addInPublication.getTitle().getTitre());
-
 		// saisie du texte
 		driver.findElement(By.id("body")).clear();
-		driver.findElement(By.id("body")).sendKeys(addInPublication.getTexte().getCorpsTexteForPublication());
-
+		//System.out.println("salut");
+		//System.out.println("document.getElementById('body').setAttribute('value', \""+addInPublication.getTexte().getCorpsTexteForPublication()+"\")");
+		//jse.executeScript("document.getElementById('body').setAttribute('value', \""+addInPublication.getTexte().getCorpsTexteForPublication()+"\")");
+		//driver.findElement(By.id("body")).sendKeys(addInPublication.getTexte().getCorpsTexteForPublication());
+		setValue(driver.findElement(By.id("body")), addInPublication.getTexte().getCorpsTexteForPublication());
+		
 		// saisie de l'image
-		driver.findElement(By.id("image0")).sendKeys(addInPublication.getImage().getAbsolutePath());
 
+		driver.findElement(By.id("image0")).sendKeys(addInPublication.getImage().getAbsolutePath());
 		// saisie du lieu 
 		driver.findElement(By.id("location_p")).clear();
-		driver.findElement(By.id("location_p")).sendKeys(addInPublication.getCommune().getNomCommuneInBase());
+
+		String communeSubmited="";
+		Commune communeToPublish = addInPublication.getCommuneLink().submit;
+		communeSubmited=communeToPublish.getNomCommune();
+		if(!communeToPublish.getCodePostal().equals("")){
+			communeSubmited = communeSubmited+" "+communeToPublish.getCodePostal();
+		}
+		jse.executeScript("window.scrollBy(0,250)", "");
+		driver.findElement(By.id("location_p")).sendKeys(communeSubmited);
+
 		driver.findElement(By.id("location_p")).sendKeys(Keys.LEFT);
-		driver.findElement(By.cssSelector("ul.location-list.visible"));
+		wait(500);
+		driver.findElement(By.id("location_p")).sendKeys(Keys.LEFT);
+		wait(500);
 		driver.findElement(By.id("location_p")).sendKeys(Keys.ENTER);
 		driver.findElement(By.cssSelector("#map_newad > div.layout:not(.hidden)"));
 		driver.findElement(By.cssSelector("#map_newad > div.layout.hidden"));
+		//driver.findElement(By.id("location_p")).getText();
+		String nomCommuneOnLbc = driver.findElement(By.cssSelector(".location-container > div:nth-child(1) > input:nth-child(6)")).getAttribute("value");
+		String CodePostalOnLbc =driver.findElement(By.cssSelector(".location-container > div:nth-child(1) > input:nth-child(5)")).getAttribute("value"); //code postal
+
+		Commune comuneOnline = new Commune();
+		comuneOnline.setNomCommune(nomCommuneOnLbc);
+		comuneOnline.setCodePostal(CodePostalOnLbc);
+		addInPublication.getCommuneLink().onLine=comuneOnline;
+
 		driver.findElement(By.id("address")).clear();
-		wait(1000);
+
 		//driver.findElement(By.id("phone")).clear();
 		//driver.findElement(By.id("phone")).sendKeys("0668332764");
-		wait(1000);
+
 		// soumission de l'annonce pour vérification
 		driver.findElement(By.id("address")).clear();
-		try{
-			Thread.sleep(1000); // pour avoir le temps de vérifier l'annonce manuellement
-		}catch(Exception exception){
-			exception.printStackTrace();
-		}
+		wait(5000);
 		driver.findElement(By.id("newadSubmit")).click();
 		wait(2000);
 
@@ -199,9 +213,8 @@ public class AgentLbc{
 
 			driver.findElement(By.id("newadSubmit")).click();
 		}
-		wait(4000);
-
-		driver.findElement(By.id("accept_rule")).click();
+		if(!driver.findElement(By.id("accept_rule")).isSelected())
+			driver.findElement(By.id("accept_rule")).click();
 		wait(4000);
 		// validation finale de l'annonce
 
@@ -212,8 +225,55 @@ public class AgentLbc{
 		driver.findElement(By.cssSelector(".headerNav_main > li:nth-child(2) > a:nth-child(1)")).click();
 	}
 
+	private void setValue(WebElement element, String value) {
+		((JavascriptExecutor)driver).executeScript("arguments[0].value = arguments[1]", element, value);
+	}
 
-	public List<Add> controlCompte(){
+	/*
+	private void selectTheRightCommune(Commune communeSubmited) {
+		driver.findElement(By.cssSelector("ul.location-list.visible"));
+		Commune mostSimilarCommune = findTheMostSimilarCommune(communeSubmited);
+		boolean isMostSimilarCommuneOnline 
+					= mostSimilarCommune.isThisCommuneOnLine(mostSimilarCommune);
+
+	}
+
+	private Commune findTheMostSimilarCommune(Commune communeSubmited) {
+		List<String> communesInLbc = getCommunesFromLocationList();
+		Commune mostSimilarCommune = new Commune();
+		mostSimilarCommune.setNomCommuneInBase(communeSubmited.getNomCommuneInBase());
+		mostSimilarCommune.setNomCommuneOnLbc(communesInLbc.get(0));
+		mostSimilarCommune.setLevenshteinDistanceBetweenLbcAndBdd();
+
+		for(int i=1;i<communesInLbc.size();i++){
+			Commune communeCandidate = new Commune();
+			communeCandidate.setNomCommuneInBase(communeSubmited.getNomCommuneInBase());
+			communeCandidate.setNomCommuneOnLbc(communesInLbc.get(i));
+			communeSubmited.setLevenshteinDistanceBetweenLbcAndBdd();
+
+			if(mostSimilarCommune.getLevenshteinDistanceBetweenLbcAndBdd()>=
+					communeCandidate.getLevenshteinDistanceBetweenLbcAndBdd()){
+				mostSimilarCommune=communeCandidate;
+			}
+		}
+		return mostSimilarCommune;
+	}
+
+	private List<String> getCommunesFromLocationList() {
+		List<WebElement> results = driver.findElements(By.cssSelector(".location-list > li"));
+		List<String> retour = new ArrayList<String>();
+		int indiceLi = 1;
+		for(WebElement communeInList : results){
+			String nomCommune = communeInList.findElement(
+					By.cssSelector("li:nth-child("+indiceLi+") > span:nth-child(1)"))
+					.getAttribute("title");
+			System.out.println(nomCommune);
+			retour.add(nomCommune);
+		}
+		return retour;
+	}*/
+
+	public List<Add> scanAddsOnLbc(){
 
 
 
@@ -265,8 +325,8 @@ public class AgentLbc{
 				String addLink = enteteAdd.findElement(By.cssSelector("a")).getAttribute("href");
 				addLinks.add(addLink);
 				indexAddToControl++;
-				if(indexAddToControl==3)
-					break;
+				/*if(indexAddToControl==3)
+					break;*/
 			}
 
 			// on parcoure ensuite les annonces une à une pour récupérer titre, textes et ville
@@ -293,10 +353,10 @@ public class AgentLbc{
 				String codePostal = m.group(2);
 				System.out.println(m.groupCount()+" : "+nomCommune+" : "+codePostal);
 
-				Commune commune = new Commune();
-				commune.setNomCommuneOnLbc(nomCommune);
-				commune.setCodePostal(codePostal);
-				add.setCommune(commune);
+				Commune communeOnLine = new Commune();
+				communeOnLine.setNomCommune(nomCommune);
+				communeOnLine.setCodePostal(codePostal);
+				add.getCommuneLink().onLine=communeOnLine;
 				String title = driver.findElement(By.cssSelector("h1.no-border")).getText();
 				add.setTitle(new Title(title));
 				String texte = driver.findElement(By.id("description")).getText();
@@ -304,9 +364,9 @@ public class AgentLbc{
 				texteOnLbc.setCorpsTexteOnLbc(texte);
 				add.setTexte(texteOnLbc);
 				System.out.println("---- Add n°"+(i+1+(indicePageInControl-1)*30)+" controlé -----");
-				if(indexAddToControl==2){
+				/*if(indexAddToControl==2){
 					break;
-				}
+				}*/
 			}
 			addsControled.addAll(addsOnPageInControl);
 			//pour se rendre sur le page n° indicePage des annonces
@@ -328,7 +388,7 @@ public class AgentLbc{
 				allAddsControled =true;
 			}
 			indicePageInControl ++;
-			allAddsControled =true;
+			/*	allAddsControled =true;*/
 
 		}
 		this.addsControled = addsControled;
@@ -341,6 +401,12 @@ public class AgentLbc{
 			exception.printStackTrace();
 		}
 	}
+
+	public List<Add> getBeforeModeration() {
+		return beforeModeration;
+	}
+
+
 }
 
 

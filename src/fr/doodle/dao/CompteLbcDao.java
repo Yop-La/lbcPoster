@@ -29,7 +29,6 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 		}
 	}
 
-	@Override
 	public CompteLbc save(CompteLbc entity) {
 		if(entity.getRefCompte() < 0){ // si l'admin n'exite pas en base, on l'insère
 			try(Connection maConnection = getConnection()){	

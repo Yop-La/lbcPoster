@@ -9,6 +9,7 @@ import org.postgresql.Driver;
 import org.postgresql.ds.PGPoolingDataSource;
 
 import exception.RepositoryException;
+import scraper.Add;
 
 public abstract class JdbcRepository<T, ID extends Serializable> {
 
@@ -59,17 +60,7 @@ public abstract class JdbcRepository<T, ID extends Serializable> {
      * @param entity
      * @return the saved entity
      */
-    public abstract T save(T entity);
-
-    /**
-     * Retrieves an entity by its id.
-     * 
-     * @param id
-     *            must not be {@literal null}.
-     * @return the entity with the given id or {@literal null} if none found
-     * @throws IllegalArgumentException
-     *             if {@code id} is {@literal null}
-     */
+ 
     public abstract T findOne(ID id);
 
     /**
@@ -113,5 +104,7 @@ public abstract class JdbcRepository<T, ID extends Serializable> {
      * Deletes all entities managed by the repository.
      */
     public abstract void deleteAll();
+
+
 
 }

@@ -1,6 +1,7 @@
 package service;
 
 
+import java.io.File;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -35,10 +36,6 @@ public class ObjectManager {
 	private List<CompteLbc> comptes;
 	private CompteLbc compteInUse;
 
-	private Source titleSourceType;
-	private Source texteSourceType;
-	private Source communeSourceType;
-
 	private List<Title> titleSource;
 	private List<Texte> texteSource;
 	private List<Commune> communeSource;
@@ -50,7 +47,7 @@ public class ObjectManager {
 	private PathToAdds pathToAdds; 
 
 	private List<Add> addsFromLbc;
-	ListIterator<Add> itOnAddReadyTosave;
+	private List<Add> addsPublieAvtMode;
 	private boolean preparationOk;
 	private boolean savingOk; 
 	private boolean saveAddToSubmitLbcInBase;
@@ -58,81 +55,47 @@ public class ObjectManager {
 	private CommuneDao comDao = new CommuneDao();
 	// résultats contrôle
 	private ResultsControl results;
-	
+
 	public ResultsControl getResults() {
 		return results;
 	}
 
-	public List<Texte> getTextePasDansLabdd(){
-		return(addsSaver.getTextesPasDansLaBdd());
-	}
-
-	public void saveCodePostalAndNomCommuneNoCorrep(String idCommuneCorrespo) {
-		int idCommuneCorresp = Integer.parseInt(idCommuneCorrespo);
-		Commune commune = itOnAddReadyTosave.previous().getCommune();
-		Commune communeCorresp = comDao.findOne(idCommuneCorresp);
-		/* on met à jour le code postal */
-		communeCorresp.setCodePostal(commune.getCodePostal());
-		comDao.updateCodePostal(communeCorresp);
-		/* on met à jour le nom */
-		communeCorresp.setNomCommuneInBase(commune.getNomCommuneOnLbc());
-		comDao.updateNomCommune(communeCorresp);
-		itOnAddReadyTosave.next();
-	}
-
-	public void saveCodePostal(){
-		Commune commune = itOnAddReadyTosave.previous().getCommune();
-		if(commune.getCodePostal() ==null){
-			System.out.println("dedans");
-			comDao.updateCodePostal(commune);
-		}
-		itOnAddReadyTosave.next();
-	}
+	
 
 	public List<Commune> search(String nameCommuneInBdd){
 		List<Commune> communes = comDao.findAll(nameCommuneInBdd);
 		return communes;
 	}
 
-	public void lancerControlCompte() {
-		// TODO Auto-generated method stub
-
+	public void scanAddsOnLbc() {// pour récupérer les annonces telles qu'elles sont sur lbc
 		agentLbc.setUp();
 		agentLbc.connect();
-		this.addsFromLbc = agentLbc.controlCompte(); // pour récupérer les annonces controlés
-		addsSaver = new AddsSaver(addsFromLbc, compteInUse); // pour faire le liene entres les annonces Lbc et la bdd (mettre à jour les ref)
-		preparationOk = addsSaver.prepareAddsToSaving(compteInUse);
-		itOnAddReadyTosave = addsFromLbc.listIterator();
-		if(preparationOk){
-			savingOk = addsSaver.saveAnnonceFromLbcInBdd();
-			if(savingOk){
-				results = addsSaver.getResults();
-			}
-		}
+		this.addsFromLbc = agentLbc.scanAddsOnLbc();
+
 	}
-	
-	// pour itérer sur les communes des adds récupéres du bon coin et prête à être sauvegarder
-	public Title nextTitleReadyTosave(){
-		return itOnAddReadyTosave.next().getTitle();
-	}
-	
-	public Title previousTitleReadyTosave() {
-		return itOnAddReadyTosave.previous().getTitle();
-	}
-	
-	public Commune nextCommuneReadyTosave(){
-		return itOnAddReadyTosave.next().getCommune();
+	public boolean isTexteAndTitleOnlineReferenced(){
+		addsSaver = new AddsSaver(addsFromLbc, compteInUse);
+		// pour commencer à lier les élèments des annonces en ligne (titres, communes, textes) à la bdd
+		// la fin des correspondances pourra se faire manuellement
+		return(addsSaver.isTexteAndTitleOnlineReferenced());
 	}
 
-	public boolean hasNextAddReadyTosave(){	
-		boolean retour = itOnAddReadyTosave.hasNext();
-		if(!retour){
-			itOnAddReadyTosave = addsFromLbc.listIterator();
-		}
-		return retour;
+	public boolean hasAddsWithMultipleReferenced(){// pour savoir si il y a des adds avec ref multiple
+		addsSaver.setAddsWithMultipleReferencedAndNotReferenced();
+		return(addsSaver.hasAddsWithMultipleReferenced());
 	}
 
-	public void lancerPublication() {
+	public boolean hasAddsNotReferencedWithCommuneNotReferenced(){
+		return(addsSaver.hasAddsNotReferencedWithCommuneNotReferenced());
+	}
+	
+	
+	public void saveAddsFromScanOfLbc(){
+			addsSaver.saveAddsFromLbcInBdd();
+			results = addsSaver.getResults();
+	}
+
+	public void genererEtPublier() {
 		// génération des annonces
 		addsGenerator.setImage();
 		addsGenerator.generateAdds();
@@ -141,12 +104,12 @@ public class ObjectManager {
 		agentLbc.connect();
 		agentLbc.goToFormDepot();
 		try{
-			agentLbc.publish();
+			addsPublieAvtMode = agentLbc.publish();
 			this.nbAddsPublie = this.nbAddsToPublish;
 		}catch(AgentLbcFailPublicationException excep){
 			this.nbAddsPublie = excep.getIndiceAnnonceDechec()-1;
+			addsPublieAvtMode = excep.getAddsToPublish();
 		}
-		
 	}
 
 	public void setcommunes() {
@@ -168,7 +131,6 @@ public class ObjectManager {
 
 	public void createAddsGenerator(){
 		addsGenerator = new AddsGenerator(nbAddsToPublish, this.compteInUse);
-		addsGenerator.saveTexteXlsxInBdd();
 	}
 
 	public void setTextes() {
@@ -229,31 +191,18 @@ public class ObjectManager {
 		return comptes;
 	}
 
-	public Source getTitleSourceType() {
-		return titleSourceType;
-	}
+	
 
 	public void setTitleSourceType(String titleSourceType) {
-		this.titleSourceType = Source.valueOf(titleSourceType);
-		addsGenerator.setTypeSourceTitles(this.titleSourceType);
-	}
-
-	public Source getTexteSourceType() {
-		return texteSourceType;
+		addsGenerator.setTypeSourceTitles(Source.valueOf(titleSourceType));
 	}
 
 	public void setTexteSourceType(String texteSourceType) {
-		this.texteSourceType = Source.valueOf(texteSourceType);
-		addsGenerator.setTypeSourceTextes(this.texteSourceType);
-	}
-
-	public Source getCommuneSourceType() {
-		return communeSourceType;
+		addsGenerator.setTypeSourceTextes(Source.valueOf(texteSourceType));
 	}
 
 	public void setCommuneSourceType(String communeSourceType) {
-		this.communeSourceType = Source.valueOf(communeSourceType);
-		addsGenerator.setTypeSourceCommunes(this.communeSourceType);
+		addsGenerator.setTypeSourceCommunes(Source.valueOf(communeSourceType));
 	}
 
 	public AgentLbc getAgentLbc() {
@@ -304,7 +253,7 @@ public class ObjectManager {
 		this.critSelectTitre = new CritereSelectionTitre(TypeTitle.valueOf(typeTitle));
 		addsGenerator.setCritSelectTitre(this.critSelectTitre);
 	}
-	
+
 	public void setCritSelectTexte(String typeTexte) {
 		this.critSelectTexte = new CriteresSelectionTexte(TypeTexte.valueOf(typeTexte));
 		addsGenerator.setCritSelectTexte(this.critSelectTexte);
@@ -325,18 +274,6 @@ public class ObjectManager {
 
 	public void setCompteInUse(CompteLbc compteInUse) {
 		this.compteInUse = compteInUse;
-	}
-
-	public void setTitleSourceType(Source titleSourceType) {
-		this.titleSourceType = titleSourceType;
-	}
-
-	public void setTexteSourceType(Source texteSourceType) {
-		this.texteSourceType = texteSourceType;
-	}
-
-	public void setCommuneSourceType(Source communeSourceType) {
-		this.communeSourceType = communeSourceType;
 	}
 
 	public boolean isPreparationOk() {
@@ -369,6 +306,21 @@ public class ObjectManager {
 
 	public void setNbAddsPublie(int nbAddsPublie) {
 		this.nbAddsPublie = nbAddsPublie;
+	}
+
+	public void addNewTextInBdd(File file, String typeTexte) {
+		AddsGenerator addsGenerator = new AddsGenerator();
+		addsGenerator.saveTexteFromXlsx(file, typeTexte);
+
+
+	}
+
+	public List<Add> getAddsPublieAvtMode() {
+		return addsPublieAvtMode;
+	}
+
+	public AddsSaver getAddsSaver() {
+		return addsSaver;
 	}
 	
 	
