@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.ListIterator;
 
 import exception.AgentLbcFailPublicationException;
+import exception.NoAddsOnlineException;
+import fr.doodle.dao.AddDao;
 import fr.doodle.dao.CommuneDao;
 import fr.doodle.dao.CompteLbcDao;
 import scraper.Add;
@@ -67,10 +69,17 @@ public class ObjectManager {
 		return communes;
 	}
 
-	public void scanAddsOnLbc() {// pour récupérer les annonces telles qu'elles sont sur lbc
+	public void scanAddsOnLbc() throws NoAddsOnlineException{// pour récupérer les annonces telles qu'elles sont sur lbc
 		agentLbc.setUp();
 		agentLbc.connect();
-		this.addsFromLbc = agentLbc.scanAddsOnLbc();
+		try{
+			this.addsFromLbc = agentLbc.scanAddsOnLbc();
+		}catch(NoAddsOnlineException excep){
+			AddDao addDao = new AddDao();
+			excep.setStatsOnAdds(addDao.putAllsAddsNotOnline(compteInUse));
+			throw excep;
+		}
+		
 
 	}
 	public boolean isTexteAndTitleOnlineReferenced(){
@@ -80,18 +89,21 @@ public class ObjectManager {
 		return(addsSaver.isTexteAndTitleOnlineReferenced());
 	}
 
-	public boolean hasAddsWithMultipleReferenced(){// pour savoir si il y a des adds avec ref multiple
-		addsSaver.setAddsWithMultipleReferencedAndNotReferenced();
+	// peut être appelé plusieurs jusqu'à temps que les adds avec ref_mutiple soit référencés une seule fois
+	public boolean hasAddsWithMultipleReferenced(){
+		addsSaver.classifyAddsOnlineWithTitleAndTextReferenced();
 		return(addsSaver.hasAddsWithMultipleReferenced());
 	}
-
-	public boolean hasAddsNotReferencedWithCommuneNotReferenced(){
-		return(addsSaver.hasAddsNotReferencedWithCommuneNotReferenced());
+	
+	// doit être appelé qu'une fois et doit retourner forcément true
+	public boolean isReadyToSave(){
+		addsSaver.setSubmitCommuneAndRefAddForAddsOnlineReferenced();
+		addsSaver.saveAddsOnlineNotReferenced();
+		return(addsSaver.isReadyToSave());
 	}
 	
-	
 	public void saveAddsFromScanOfLbc(){
-			addsSaver.saveAddsFromLbcInBdd();
+			addsSaver.updateAddsFromLbc();
 			results = addsSaver.getResults();
 	}
 

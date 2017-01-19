@@ -48,7 +48,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 							+ " code_reg,"
 							+ " nom_reg,"
 							+ " code_postal)"
-							+" VALUES (?, ?, ?, ?, ?, ?, ?, ?),",Statement.RETURN_GENERATED_KEYS)){;
+							+" VALUES (?, ?, ?, ?, ?, ?, ?)",Statement.RETURN_GENERATED_KEYS)){;
 							statement.setString(1, entity.getCodeDep());
 							statement.setString(2, entity.getCodeCommune());
 							statement.setString(3, entity.getNomCommune());
@@ -65,6 +65,12 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 			}
 		}catch(SQLException e){
 			e.printStackTrace();
+			try {
+				Thread.sleep(1000000000);
+			} catch (Exception e2) {
+				// TODO: handle exception
+			}
+			
 			return entity;
 		}
 	}
@@ -252,7 +258,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 					maConnection.prepareStatement(requete)){
 				statement.setString(1, codeDep);
 				statement.setString(2, codeCommune);
-				statement.setString(3, nomCommune.toLowerCase());
+				statement.setString(3, '%'+nomCommune.toLowerCase()+'%');
 				try(ResultSet results = statement.executeQuery()){
 					while(results.next()){
 						Commune commune = new Commune(results.getString(1), results.getString(2), results.getString(3), results.getFloat(4), results.getString(5), results.getString(6), results.getInt(7), results.getString(8));
@@ -318,9 +324,9 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 		try(Connection maConnection = getConnection()){	
 			try(PreparedStatement selectStatement = 
 					maConnection.prepareStatement("SELECT ref_commune from communes where "
-										+ "lower(nom_commune) like lower(?) and lower(code_dep) like ?")){	
+										+ "lower(nom_commune) = ? and lower(code_dep) = ?")){	
 				selectStatement.setString(1, commune.getNomCommune().toLowerCase());
-				selectStatement.setString(2, "%"+commune.getCodeDep().toLowerCase()+"%");
+				selectStatement.setString(2, commune.getCodeDep().toLowerCase());
 				ResultSet rs = selectStatement.executeQuery();
 				while(rs.next()) {
 					Commune communeRetour = findOne(rs.getInt(1));
@@ -331,6 +337,28 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 		}catch(SQLException e){
 			e.printStackTrace();
 			return retour;
+		}
+	}
+
+	public Commune findOneWithNomCommuneAndCodeDep(Commune commune) {
+		Commune retour=null;
+		try(Connection maConnection = getConnection()){	
+			try(PreparedStatement selectStatement = 
+					maConnection.prepareStatement("SELECT ref_commune from communes "
+							+ "	where lower(nom_commune) = ? and lower(code_dep) = ?")){	
+				selectStatement.setString(1, commune.getNomCommune().toLowerCase());
+				selectStatement.setString(2, commune.getCodeDep());
+				ResultSet rs = selectStatement.executeQuery();
+				if(rs.next()) {
+					retour = findOne(rs.getInt(1));
+				}else{
+					return null;
+				}
+				return retour;
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+			return null;
 		}
 	}
 

@@ -3,7 +3,7 @@ package scraper;
 import org.apache.commons.lang3.StringUtils;
 
 import fr.doodle.dao.CommuneDao;
-
+// 36639 communes
 public class Commune {
 	private String codeDep;
 	private String codeCommune;
@@ -12,7 +12,7 @@ public class Commune {
 	private String codeReg;
 	private String nomReg;
 	private String codePostal="";
-	private int refCommune;
+	private int refCommune=-1;
 	
 	public Commune(){
 	}
@@ -113,6 +113,12 @@ public class Commune {
 	public void updateCodePostal() {
 		CommuneDao communeDao = new CommuneDao();
 		communeDao.updateCodePostal(this);
+	}
+
+	public void updateNom() {
+		CommuneDao communeDao = new CommuneDao();
+		communeDao.updateNomCommune(this);
+		
 	}
 
 	

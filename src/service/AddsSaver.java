@@ -19,7 +19,7 @@ import scraper.Title;
 
 public class AddsSaver {
 	private List<Add> addsToControle;
-	private List<Add> addsReadyTosave;
+	private List<Add> addsReadyToSave = new ArrayList<Add>();
 	private CommuneDao communeDao;
 	private TitreDao titreDao;
 	private TexteDao texteDao;
@@ -38,7 +38,8 @@ public class AddsSaver {
 	private List<Add> addsOnLineWithoutRefForTexte = new ArrayList<Add>();
 	private List<Add> addsOnLineWithMultipleRef = new ArrayList<Add>();
 	private List<Add> addsOnLineNotReferenced = new ArrayList<Add>();
-	private List<Add> addsOnlineNotReferencedWithCommuneNotReferenced = new ArrayList<Add>();
+	private List<Add> addsOnLineWithOneRef = new ArrayList<Add>();
+	private List<Add> addsUpdated = new ArrayList<Add>();
 
 	// utiliser pour sauvegarder les annonces étant en ligne sur lbc
 	public AddsSaver(List<Add> addsControled, CompteLbc compteLbc) {
@@ -51,96 +52,77 @@ public class AddsSaver {
 
 	}
 
-	// soit on met à jour l'add si il est en bdd (cas d'un nème controle avec n>1)
-	// soit on l'insère (cas d'un premier contrôle)
-	public void setAddsWithMultipleReferencedAndNotReferenced(){
+
+	
+	public void setSubmitCommuneAndRefAddForAddsOnlineReferenced(){
+		AddDao addDao = new AddDao();
+		for(Add addReferencedOnce : addsOnLineWithOneRef){
+			addReferencedOnce = addDao.setSubmitCommuneAndRefAdd(addReferencedOnce);
+			addsReadyToSave.add(addReferencedOnce);
+		}
+	}
+	
+	
+	public void saveAddsOnlineNotReferenced(){
+		for(Add addOnLineNotRerenced : addsOnLineNotReferenced){
+			AddDao addDao = new AddDao();
+			addOnLineNotRerenced= addDao.saveAddsNotReferenced(addOnLineNotRerenced);
+			addsReadyToSave.add(addOnLineNotRerenced);
+		}
+	}
+	
+	public boolean isReadyToSave(){
+		return(addsReadyToSave.size() == addsToControle.size());
+	}
+	
+	// en entrée : addsOnLineWithTexteAndTitleInBdd
+	// c'est la liste des adds online
+	// 1°) certaines sont référencées et vont matchés à la bdd grâce au titre et au texte
+	// 2°) d'autres sont  pas référencées car pas d'enregistrement au moment du dépôt
+	// pour les premières, on va pouvoir retrouver la commune soumise dans la méthode ci dessous 
+	// pour les secondes, on pourra pas retrouver la commune soumise. On va enregistrer ces annonces ci dessous
+	public void classifyAddsOnlineWithTitleAndTextReferenced(){
 		addsOnLineWithMultipleRef = new ArrayList<Add>();
 		addsOnLineNotReferenced = new ArrayList<Add>();
+		addsOnLineWithOneRef = new ArrayList<Add>();
 		addDao = new AddDao();
 		// pour mettre à jour les annonces encore en ligne et insérer les nouvelles annonces en ligne
-		for(Add addToSave : addsOnLineWithTexteAndTitleInBdd){
-			Add addInBdd=null;
-			try{
-				addInBdd = addDao.findOneAddFromLbc(addToSave);
-				if(addInBdd.isAddNotReferenced()){
-					addsOnLineNotReferenced.add(addToSave);
-					// les adds non référencés sont les adds
-					// - dont le titre et le texte était en bdd mais pas l'annonce avec ce titre et ce texte
-					// - dont le titre et le texte n'était pas en bdd mais mais pas l'annonce avec ce titre et ce texte
-					// Il peut s'agir d'annonces publiés sans ce robot
-					// ou d'erreurs
-					// dans tous les cas, il faut sauvegardé cette annonce
-					// à ce stade le titre et le texte sont référencés
-					// il reste donc à référencer la commune manuellement 
-					// pour pouvoir sauvergarder l'annonce par la suite
-				}
-			}catch(MultipleCorrespondanceAddException exception){
-				addsOnLineWithMultipleRef.add(addToSave);
+		for(Add addOnLine : addsOnLineWithTexteAndTitleInBdd){
+			int numberOfMatch = addDao.countNumberOfRef(addOnLine);
+			switch (numberOfMatch) {
+			case 0:
+				addsOnLineNotReferenced.add(addOnLine);
+				break;
+			case 1:
+				addsOnLineWithOneRef.add(addOnLine);
+				break;
+			default:
+				addsOnLineWithMultipleRef.add(addOnLine);
+				break;
 			}
 		}
 	}
-	public void setAddsNotReferencedWithCommuneNotReferenced(){
-		addsOnlineNotReferencedWithCommuneNotReferenced = new ArrayList<Add>();
-		for(Add add: addsOnlineNotReferencedWithCommuneNotReferenced){
-			if(add.getCommuneLink().onLine.getCodePostal().equals("")){
-				addsOnlineNotReferencedWithCommuneNotReferenced.add(add);
-			}
-		}
-	}
-	public boolean areAddsReadyToSave(){
-		setAddsWithMultipleReferencedAndNotReferenced();
-		setAddsNotReferencedWithCommuneNotReferenced();
-		if(addsOnLineWithMultipleRef.size()==0 & addsOnlineNotReferencedWithCommuneNotReferenced.size()==0){
-			addsReadyTosave = addsOnLineWithTexteAndTitleInBdd;
-			return true;
-		}else{
-			return false;
-		}
-	}
-	public boolean hasAddsNotReferencedWithCommuneNotReferenced(){
-		setAddsWithMultipleReferencedAndNotReferenced();
-		return(addsOnlineNotReferencedWithCommuneNotReferenced.size()!=0);
-	}
-	public boolean hasAddsWithMultipleReferenced(){
-		setAddsWithMultipleReferencedAndNotReferenced();
-		return(addsOnLineWithMultipleRef.size()!=0);
-	}
-	
-	
 
-	public void saveAddsFromLbcInBdd() {
+
+
+	public void updateAddsFromLbc() {
 		addDao = new AddDao();
 		// pour mettre à jour les annonces encore en ligne et insérer les nouvelles annonces en ligne
-		for(Add addToSave : addsReadyTosave){
-			CommuneLink communeLink = addToSave.getCommuneLink();
-			Add addInBdd=null;
-			try{	
-				addInBdd = addDao.findOneAddFromLbc(addToSave);//retourne une ADD vide si pas correspondance
-			}catch(Exception excep){
-				System.out.println("C'est normalement pas possible de venir là car on a fait en sorte ques"
-						+ "qu'il n'y est plus de références multiples");
-			}
-			Add addSaved;
-			if(addInBdd.isAddNotReferenced()){
-
-				// comme add pas référence , on ne connais pas submit commune
-				// car aucun enregistrement en base n'a été fait lors 
-				// de la soumission de l'annonce
-				// on va donc insérer l'add telle quelle	
-				// problème : aucune référence de commune
-				addToSave.setEtat(EtatAdd.onLine);
-				addSaved = addDao.save(addToSave, true);
-				newAddsOnline.add(addSaved);
+		for(Add addReferencedOnce : addsReadyToSave){
+			CommuneLink communeLink = addReferencedOnce.getCommuneLink();
+			AddDao addDoa = new AddDao();
+			// si annonce pas enregistré au moment de la publication
+			if(communeLink.submit == null){
+				addReferencedOnce.setEtat(EtatAdd.onLine);
+				addDao.update(addReferencedOnce);
+				newAddsOnline.add(addReferencedOnce);
 			}else{// sinon on la met à jour
-				addToSave.setNbControle(addInBdd.getNbControle()+1);
-				addToSave.setEtat(EtatAdd.onLine);
-				addToSave.setRefAdd(addInBdd.getRefAdd());
-				addDao.update(addToSave);
-				addSaved = addToSave;
-				addsStillOnline.add(addSaved);
+				addReferencedOnce.setNbControle(addReferencedOnce.getNbControle()+1);
+				addReferencedOnce.setEtat(EtatAdd.onLine);
+				addDao.update(addReferencedOnce);
+				addsStillOnline.add(addReferencedOnce);
 			}
-			// on instancie commune submit pour pouvoir faire la correspondance des communes par la suite
-			communeLink.submit = communeDao.findOne(communeLink.onLine.getRefCommune());
+			addsUpdated.add(addReferencedOnce);
 		}
 		// mettre à jour les annonces qui ont été refusés par la modération
 		addsRefused = addDao.findAddsWithHerState(new Add(EtatAdd.enAttenteModeration, compteLbc));
@@ -179,7 +161,7 @@ public class AddsSaver {
 			//boolean communeReferenced = false;
 			boolean texteReferenced = false;
 			add.setCompteLbc(this.compteLbc);
-			
+
 			/*
 			// lier les communes du bon coin en ligne à la bdd
 			Commune communeFrBdd = communeDao.findOneWithNomCommuneOnLbc(add.getCommuneLink().onLine);
@@ -272,11 +254,11 @@ public class AddsSaver {
 	}
 
 	public List<Add> getAddsReadyTosave() {
-		return addsReadyTosave;
+		return addsReadyToSave;
 	}
 
 	public void setAddsReadyTosave(List<Add> addsReadyTosave) {
-		this.addsReadyTosave = addsReadyTosave;
+		this.addsReadyToSave = addsReadyTosave;
 	}
 
 	/*
@@ -296,14 +278,18 @@ public class AddsSaver {
 		return addsOnLineWithMultipleRef;
 	}
 
-	public List<Add> getAddsNotReferencedWithCommuneNotReferenced() {
-		return addsOnlineNotReferencedWithCommuneNotReferenced;
-	}
-
 	public List<Add> getAddsStillOnline() {
 		return addsStillOnline;
 	}
-	
+
+	public boolean hasAddsWithMultipleReferenced() {
+		return(this.addsOnLineWithMultipleRef.size()!=0);
+	}
+
+	public List<Add> getAddsUpdated() {
+		return addsUpdated;
+	}
+
 	
 
 

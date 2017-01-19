@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import exception.HomeException;
+import exception.NoAddsOnlineException;
 import fr.doodle.dao.CompteLbcDao;
 import scraper.CompteLbc;
 import service.ObjectManager;
@@ -19,30 +20,18 @@ public class MoteurConsole {
 
 	public static void main(String[] args) {
 
-	
-/*
+
+		/*
 		do{
 			Scanner in = new Scanner(System.in);
-			String newLine = in.nextLine();
-			Pattern p = Pattern.compile("^((\\S*)|(\\s)),((\\d*)|(\\s)),((\\d*)|(\\s))$");
-			// création d'un moteur de recherche
-			Matcher m = p.matcher(newLine);
-			// lancement de la recherche de toutes les occurrences
-			boolean b = m.matches();
-			// si recherche fructueuse
-			if(b) {
-				// pour chaque groupe
-				for(int i=0; i <= m.groupCount(); i++) {
-					// affichage de la sous-chaîne capturée
-					System.out.println("Groupe " + i + " : " + m.group(i));
-				}
-				String[] elementsRequete = newLine.split(",");
-				System.out.println(elementsRequete[0].toLowerCase()+".");
-				System.out.println(elementsRequete[1]+".");
-				System.out.println(elementsRequete[2]+".");
+			String codePostal = in.nextLine();
+			codePostal  = codePostal.substring(0, 2);
+			if(codePostal.substring(0, 1).equals("0")){
+				codePostal=codePostal.substring(1);
 			}
+			System.out.println(codePostal);
 		}while(true);
-*/
+		 */
 		MoteurConsole console = new MoteurConsole();
 		console.acceuil();
 	}
@@ -68,7 +57,7 @@ public class MoteurConsole {
 			System.out.println("1 : Publier des annonces");
 			System.out.println("2 : Ajouter un nouveau compte LBC");
 			System.out.println("3 : Controler un compte LBC");
-			System.out.println("4 : Afficher un compte LBC");
+			System.out.println("4 : Gérer les comptes LBC");
 			System.out.println("5 : Enregistrer des nouveaux textes dans la bdd");
 			System.out.println();
 			String saisie = Console.readString("Que voulez vous faire ?");
@@ -97,7 +86,11 @@ public class MoteurConsole {
 				}
 				break;
 			case "4":
-				afficherCompteLbc();
+				try {
+					gererCompteLbc();
+				} catch (HomeException homeException) {
+					continueBoucle = true;
+				}
 				continueBoucle = true;
 				break;
 			case "5":
@@ -129,9 +122,13 @@ public class MoteurConsole {
 	}
 
 
-	private void afficherCompteLbc() {
+	private void gererCompteLbc() throws HomeException{
 		manager.setComptes();
-		printManager.printCompte();
+		System.out.println("---------- MENU DE GESTION DES COMPTES -----------");
+		System.out.println();
+		printManager.printComptes();
+		choixDunCompte();
+		printManager.menuGestionDesComptes();
 
 	}
 
@@ -142,7 +139,14 @@ public class MoteurConsole {
 				+ "\nFaire ce contrôle deux jours après le passage de la modération");
 		choixDunCompte();
 		manager.createAgentLbc();
-		manager.scanAddsOnLbc();
+		try{
+			manager.scanAddsOnLbc();
+		}catch(NoAddsOnlineException excep){
+			System.out.println(" Il n'y a aucune annonces en ligne !! ");
+			System.out.println("Le nb d'annonces qui était en ligne est de : "+excep.getNbAddsOnline());
+			System.out.println("Le nb d'annonces qui était en attende modération est de : "+excep.getNbAddsEnAttenteMode());
+			throw new HomeException();
+		}
 
 
 		boolean texteAndTitleOnlineReferenced;
@@ -162,39 +166,21 @@ public class MoteurConsole {
 		do{
 			addsOnlineHasMoreThanOneReference = manager.hasAddsWithMultipleReferenced();// vaudra vrai si chaque annonce a une unique correspondance en bdd
 			if(addsOnlineHasMoreThanOneReference){
-				System.out.println("Il y a des annonces avec plusieurs correspondances !");
+				System.out.println("Il y a des annonces en ligne avec plusieurs correspondances !");
 				printManager.toSolveMultipleAddMatch();
 			}else{
 				System.out.println("Toutes les annonces en lignes sont référencés au plus une fois");
 			}
 
 		}while(addsOnlineHasMoreThanOneReference);
-		boolean readyToSave;
 
-		do{
-			// pour les adds non référencés, on doit s'assurer que la commune en ligne est pas dans la bdd
-			// et mettre cette ref de commune dans les adds non référencés pour pouvoir les sauvegarder
-			if(manager.hasAddsNotReferencedWithCommuneNotReferenced()){
-				System.out.println("Il y a des annonces non référencés \n"
-						+ "ce sont des annonces normalement insérés sans ce robot (ou bien des erreurs)"
-						+ " Il n'y a donc aucune trace de l'annonce soumise en base"
-						+ " et il reste donc normalement plus qu'à lié la commune de cette "
-						+ " annnonce à la base pour pouvoir la sauvegarder car titre et texte sont référencés");
-				printManager.toSolveAddsNotReferencedWithCommuneNotReferenced();
-			}else{
-				System.out.println("Il n'y a pas d'annonces en ligne non référencés avec des communes sans ref");
-			}
-		}while(manager.hasAddsNotReferencedWithCommuneNotReferenced());
-
-		if(manager.getAddsSaver().areAddsReadyToSave()){
+		if(manager.isReadyToSave()){
 			System.out.println("Toutes les éléments des annonces lbc ont une correspondance en bdd et une seule");
-			System.out.println("De même chaque annonce en ligne a une unique ref en base (sauf celles pas publiés avec le robot)");
-			System.out.println("---- Gestion de la correspondance des communes des annonces pas référencés entre la Bdd et LeBonCoin ----");
-			printManager.gererCorrepondanceCommunes(manager.getAddsSaver().getAddsNotReferencedWithCommuneNotReferenced());
+			System.out.println("De même chaque annonce en ligne a une unique ref en base");
 			manager.saveAddsFromScanOfLbc();
 			System.out.println("---- Gestion de la correspondance des communes des annonces référencés en ligne entre la Bdd et LeBonCoin ----");
-			printManager.gererCorrepondanceCommunes(manager.getAddsSaver().getAddsStillOnline());
-			System.out.println("Les annonces de lbc ont bien été sauvegardés");
+			printManager.gererCorrepondanceCommunes(manager.getAddsSaver().getAddsUpdated());
+			System.out.println("Les annonces de lbc ont bien été mise à jour");
 			printManager.printResults();
 		}else{
 			System.out.println("Les annonces sont pas prêtes à être sauvegardés");
@@ -282,6 +268,7 @@ public class MoteurConsole {
 			manager.setcommunes();
 			// on affiche les titres choisies pour vérification de la part de l'utilisateur 
 			System.out.println(printManager.communeToString());
+			printManager.afficherNbCommunesForPublication();
 			renouvellez = readConsoleInput("^oui|non", "Est ce bien les communes ci dessus que vous voulez utiliser ?",
 					"Votre réponse", "doit être oui ou non");
 		}while(renouvellez.equals("non"));
@@ -371,6 +358,7 @@ public class MoteurConsole {
 			manager.setTextes();
 			// on affiche les titres choisies pour vérification de la part de l'utilisateur 
 			System.out.println(printManager.texteToString());
+			printManager.afficherNbTexteForPublication();
 			renouvellez = readConsoleInput("^oui|non", "Est ce bien les textes ci dessus que vous voulez utiliser ?",
 					"Votre réponse", "doit être oui ou non");
 		}while(renouvellez.equals("non"));
@@ -412,6 +400,7 @@ public class MoteurConsole {
 			manager.setTitres();
 			// on affiche les titres choisies pour vérification de la part de l'utilisateur 
 			System.out.println(printManager.titreToString());
+			printManager.afficherNbTitleForPublication();
 			renouvellez = readConsoleInput("^oui|non", "Est ce bien les titres ci dessus que vous voulez utiliser ?",
 					"Votre réponse", "doit être oui ou non");
 		}while(renouvellez.equals("non"));

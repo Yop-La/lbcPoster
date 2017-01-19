@@ -1,6 +1,7 @@
 package service;
 
 import java.io.File;
+import java.util.Calendar;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -8,8 +9,12 @@ import java.util.regex.Pattern;
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 
+import org.apache.poi.util.SystemOutLogger;
+
 import exception.HomeException;
+import fr.doodle.dao.AddDao;
 import fr.doodle.dao.CommuneDao;
+import fr.doodle.dao.CompteLbcDao;
 import fr.doodle.dao.TexteDao;
 import fr.doodle.dao.TitreDao;
 import scraper.Add;
@@ -39,7 +44,7 @@ public class PrintManager extends JPanel{
 		ResultsControl results = objectManager.getResults();
 		System.out.println("Nb d'annonces refusées par la modération : "+results.getNbRefus());
 		System.out.println("Nb d'annonces plus en ligne depuis dernier contrôle (périmé ou supprimé) : "+results.getNbSuppression());
-		System.out.println("Nb d'annonces de nouvelles annonces qui était pas dans la bdd (pas ref pendant la publication) : "+results.getNbNewAddsOnline());
+		System.out.println("Nb de nouvelles annonces qui était pas dans la bdd (pas ref pendant la publication) : "+results.getNbNewAddsOnline());
 		System.out.println("Nb d'annonces d'annonces toujours en ligne depuis dernier contrôle : "+results.getNbAddStillOnline());
 	}
 
@@ -113,7 +118,15 @@ public class PrintManager extends JPanel{
 	public String communeToString() {
 		return listToString(objectManager.getCommuneSource());
 	}
-
+	public void afficherNbTitleForPublication(){
+		System.out.println("Le nombre de titres retenus pour la publication est de : "+objectManager.getTitleSource().size());
+	}
+	public void afficherNbTexteForPublication(){
+		System.out.println("Le nombre de textes retenus pour la publication est de : "+objectManager.getTexteSource().size());
+	}
+	public void afficherNbCommunesForPublication(){
+		System.out.println("Le nombre de communes retenus pour la publication est de : "+objectManager.getCommuneSource().size());
+	}
 
 	public void searchResults(String nomCom){
 		List<Commune> communes = objectManager.search(nomCom);
@@ -238,197 +251,409 @@ public class PrintManager extends JPanel{
 
 	// pour que commune online soit référencée et à jour dans la bdd
 	// pour que commune submit à jour dans la bdd (code postal)
-	public void gererCorrepondanceCommunes(List<Add> addsWithCommuneOnlineNotReferenced) {
+	public void gererCorrepondanceCommunes(List<Add> adds) {
 		// pour lier la commune en ligne à la bdd (pas de mise à jour du code postale sauf pour linsert)
 		int indiceAdd=1;
-		for(Add addWithCommuneOnlineNotReferenced : addsWithCommuneOnlineNotReferenced){
+		for(Add add : adds){
 			System.out.println();
-			System.out.println("Commune de l'add n°"+indiceAdd+" de ref n° "+addWithCommuneOnlineNotReferenced);
+			System.out.println("Commune de l'add n°"+indiceAdd+" de ref n° "+add);
 			System.out.println();
-			CaseOfMatching caseOfMAtch = toReferencesOnlineCommune(addWithCommuneOnlineNotReferenced);
-			CommuneLink communeLink = addWithCommuneOnlineNotReferenced.getCommuneLink();
+			toReferencesOnlineCommune(add);
+			CommuneLink communeLink = add.getCommuneLink();
 			// mise à jour code postal de submit et de online
-			miseAJourDesCodesPostaux(caseOfMAtch, communeLink);
-			System.out.println("Comparaison des communes après mise à jour des codes postaux ");
+			miseAJourDuCodePostalDeSubmit(communeLink);
+			System.out.println("Comparaison des communes après mise à jour du code postal de submit ");
 			communeLink.printComparaison();
 			System.out.println();
 			System.out.println();
 			indiceAdd++;
+			valider("Voulez vous passer à la commune suivante ? ");
+			
 		}
 	}
+	// cette méthode reçoit en entrée :
+	// - cas 1 : la liste des annonces après publication
+	// - cas 2 : ou la liste des annonces scannés sur lbc après modération
 
-	// le para passé peut être la liste des communes avant modération construite lors de la publication
-	// ou la liste des annonces non référencés sans commune référencés lors du controle des annonces
-	//ou la liste des annonces sauvegardés lors du controle des annonces
-	public CaseOfMatching toReferencesOnlineCommune(Add addWithCommuneOnlineNotReferenced){
-		CommuneLink communeLink = addWithCommuneOnlineNotReferenced.getCommuneLink();
+	// cas 1 : pour chaque annonce, on connaît submit et online
+	// cas 2 : il y a des annoncs où on ne connaît pas submit mais on connaît toujours online
+
+	// on doit dans tous les cas relier online à la bdd
+	// mettre à jour la ref_commune de la commune en base pour qu'elle corresponde à celle online
+	// mettre à jour le code postal de onlin et de submit ( si submit existe et est différent de online)
+
+	public CaseOfMatching toReferencesOnlineCommune(Add add){
+		CommuneLink communeLink = add.getCommuneLink();
 		CaseOfMatching caseOfMAtch = communeLink.getCaseOfMatch();
 		OperationToSolveMatching opToSolveMatching=null;
 		System.out.println("Comparaison des communes avant gestion des correspondances");
 		communeLink.printComparaison();
-		switch (caseOfMAtch){
+		System.out.println();
+		switch(caseOfMAtch){
 		case perfectMatch:
-			printCasePerfectMatch();
+			handlePerfectMatch(add);
 			break;
 		case sameNameOneMatch:
-			printCaseSameNameOneMatch(communeLink);
+			handleSameNameOneMatch(add);
 			break;
 		case differentNameOneMatch:
-			printCaseDifferentNameOneMatch(communeLink);
+			handleDifferentNameOneMatch(add);
 			break;
+			// peu de chance que ça arrive car les couples nom_commune et code_dep sont uniques
 		case sameNameSeveralMatch:
-			printCaseSameNameSeveralMatch(communeLink);
-			opToSolveMatching=findTheOperationToResolveMatching(communeLink);
+			handleSameNameSeveralMatch(add);
 			break;
-		case differentNameSeveralMatch:
-			printCaseDifferentNameSeveralMatch(communeLink);
-			opToSolveMatching=findTheOperationToResolveMatching(communeLink);
+			// peu de chance que ça arrive car les couples nom_commune et code_dep sont uniques
+		case differentNameSeveralMatch://code postal de submit à mettre à jour
+			handleDifferentNameSeveralMatch(add);
 			break;
-		case differentNameNoMatch:
-			printCaseDifferentNameNoMatch(communeLink);
-			opToSolveMatching=findTheOperationToResolveMatching(communeLink);
+		case differentNameNoMatch://code postal de submit à mettre à jour si insertion 
+			//(code postal de submit automatiquement mis à jour si pas changement de nom
+			handleDifferentNameNoMatch(add);
 			break;
-		case unknowCase:
-			System.out.println("Normalement impossible d'arriver là");
+		case noSubmitNoMatch:
+			handleNoSubmitNoMatch(add);
 			break;
-		}
-		// pour vérifier que tout est cohérent ( si submit a un code postal alors il doit y avoir un perfect match)
-		if(!caseOfMAtch.equals(CaseOfMatching.perfectMatch)){
-			if((!communeLink.submit.getCodePostal().equals(""))){
-				System.out.println("Problème ... car submit a un code postal mais pas de perfect match ...");
-				System.out.println("Il y a une incohérence entre le nom et le code postal de commune soumise et la base ...");
-			}	
-		}
-		// bloc des opérations à faire pour faire trouver la correspondance de la commune online
-		// on en profite aussi pour mettre à jour le code postal de la commune online
-		if(opToSolveMatching!=null){
-			Commune futurCommuneOnLine=null;
-			if(opToSolveMatching.equals(OperationToSolveMatching.addCommuneOnlineToBdd)){
-				futurCommuneOnLine = saisirCommunesToInsert();
-			}
-			if(opToSolveMatching.equals(OperationToSolveMatching.linkCommuneOnLineToAnotherCommuneInBase)){
-				int refCommuneSelected = selectAcommuneFromTheResults();
-				futurCommuneOnLine = new Commune();
-				futurCommuneOnLine.setRefCommune(refCommuneSelected);
-			}
-			communeLink.makeOperationToSolveMatching(opToSolveMatching,futurCommuneOnLine);
-		}else{// on arrive ici si perfectMatch, differentNameOneMatch, sameNameOneMatch
-			// perfectMatch et sameNameOneMacth vont se gérer de la même manière
-			// dans ce cas la commune online et la même que la comune submit
-			switch (caseOfMAtch){
-			case perfectMatch:
-				communeLink.onLine=communeLink.submit;
-				break;
-			case sameNameOneMatch:
-				communeLink.codePostalGoToSubmit();
-				communeLink.onLine=communeLink.submit;
-				break;
-			case differentNameOneMatch:
-				String codePostalOnline = communeLink.onLine.getCodePostal();
-				CommuneDao comDao = new CommuneDao();
-				communeLink.onLine = comDao.findOneWithNomCommune(communeLink.onLine);
-				communeLink.onLine.setCodePostal(codePostalOnline);
-				break;
-			default:
-				System.out.println("Impossible d'arriver là !!!!");
-			}
-
+		case noSubmitOneMatch:
+			handleNoSubmitOneMatch(add);
+			break;
+		case noSubmitSeveralMatch:
+			handleNoSubmitSeveralMatch(add);
+			break;
 		}
 		System.out.println("Comparaison des communes après gestion des correspondances");
 		communeLink.printComparaison();
+		System.out.println();
 		return caseOfMAtch;
 	}	
 
-
-
-	private void miseAJourDesCodesPostaux(CaseOfMatching caseOfMAtch, 
-			CommuneLink communeLink) {
-		if(communeLink.submit != null){
-			if(caseOfMAtch.equals(CaseOfMatching.perfectMatch)){
-
-				if(communeLink.submit.getCodePostal().equals("")){
-					System.out.println("Problème ... car submit n'a pas de code postal mais perfect match ...");
-				}
-
-
-			}
-		}
-
-		if(communeLink.onLine.getCodePostal().equals("")){
-			System.out.println("Mise à jour du code postal de la commune en ligne");
-			communeLink.onLine.setCodePostal(saisirCodePostal());
-			communeLink.onLine.updateCodePostal();
-
-		}
-		// peut être null quand on veut référencer les communes non référencéss
-		// des adds non référencés après contrôles des annonces
-		if(caseOfMAtch.equals(CaseOfMatching.sameNameOneMatch)){
-			System.out.println("Mise à jour du code postal de la commune soumise");
-			communeLink.submit.updateCodePostal();
-		}
-		if(caseOfMAtch.equals(CaseOfMatching.differentNameOneMatch)){
-			System.out.println("Mise à jour du code postal de la commune online");
-			communeLink.onLine.updateCodePostal();
-		}
-
-		if(communeLink.submit!=null){
-			if(communeLink.submit.getCodePostal().equals("")){
+	private void miseAJourDuCodePostalDeSubmit(CommuneLink communeLink) {
+		if(communeLink.submit == null){
+			System.out.println("Pas de code postal de submit à enregistrer \n"
+					+ "car pas de commune soumise enregistré au moment de la publication");
+		}else{
+			if(communeLink.submit.equals("")){
 				System.out.println("Mise à jour du code postal de la commune soumise");
 				communeLink.submit.setCodePostal(saisirCodePostal());
 				communeLink.submit.updateCodePostal();
+			}else{
+				System.out.println("Pas de code postal de submit à enregistrer \n"
+						+ "car soit perfect match, soit autre chose");
 			}
 		}
-
 	}
+	
+	private boolean valider(String message) {
+		try{
+			String confirmation = readConsoleInput("^o|n$", 
+					message,
+					"Votre réponse", 
+					" être o ou n");
+			if(confirmation.equals("oui")){
+				return true;
+			}else{
+				return false;
+			}
+		}catch(HomeException excep){
+			System.out.println("Impossible de terminer le traitement en cours");
+			return(isOnlinCorrespondToSubmit());
+		}
+	}
+	
 
-	private void printCaseDifferentNameNoMatch(CommuneLink communeLink) {
+	private void handleDifferentNameNoMatch(Add add) {
 		System.out.println("Commune soumise et en ligne ont des noms différents");
 		System.out.println("De plus, aucunes commune en base correspondante à celle en ligne");
-		System.out.println("À vous de trouver la commune en bdd correspondante ou de l'ajouter");
+		System.out.println("Dans ce cas, commune soumise et en ligne peuvent êtres les mêmes "
+				+ "\n à une différence minime de nom près.");
+		System.out.println("À vous : "
+				+ "\n de trouver la commune en bdd correspondante (si le nom est lègerement, il sera updaté)"
+				+ "\n  ou de l'ajouter");
+
+		CommuneLink communeLink = add.getCommuneLink();
+		CommuneDao comDao = new CommuneDao();
 		
+		searchTheCorrespondingCommune();
+		String choixOperation = choixOperationPourNoMatch();
+		if(choixOperation.equals("addNewCommune")){
+			Commune communeToInsert = saisirCommunesToInsert();
+			communeToInsert.setCodePostal(communeLink.onLine.getCodePostal());
+			communeToInsert.setNomCommune(communeLink.onLine.getNomCommune());
+			Commune communeInserted =comDao.save(communeToInsert);
+			communeLink.onLine=communeInserted;
+			
+		}else if(choixOperation.equals("selectCommuneNameInBase")){
+			System.out.println("Saisir l'id de la commune en base correspondante à celle en ligne"
+					+ " dont le nom sera remplacé par celui online");
+			int refCommuneSelected = selectAcommuneFromTheResults();
+			Commune communeSelected = comDao.findOne(refCommuneSelected);
+			communeSelected.setNomCommune(communeLink.onLine.getNomCommune());
+			communeSelected.setCodePostal(communeLink.onLine.getCodePostal());
+			
+			System.out.println("Mise à jour du code postal de la commune correspondante et de son nom");
+			communeSelected.updateCodePostal();
+			communeSelected.updateNom();
+			communeLink.onLine = communeSelected;	
+		}
+		AddDao addDao = new AddDao();
+		System.out.println("Mise à jour de la ref commune de l'add");
+		addDao.updateRefCommune(add);	
+		if(isOnlinCorrespondToSubmit()){
+			communeLink.submit = communeLink.onLine;
+		}
+			
+		
+
 	}
 
-	private void printCaseDifferentNameSeveralMatch(CommuneLink communeLink) {
+	private boolean isOnlinCorrespondToSubmit() {
+		try{
+			String confirmation = readConsoleInput("^oui|non$", 
+					"Est ce que la commune soumise correspondait à la commune online (excepté quelques différences de nom) ?",
+					"Votre réponse", 
+					" oui ou non");
+			if(confirmation.equals("oui")){
+				return true;
+			}else{
+				return false;
+			}
+		}catch(HomeException excep){
+			System.out.println("Impossible de terminer le traitement en cours");
+			return(isOnlinCorrespondToSubmit());
+		}
+	}
+
+	private String choixOperationPourNoMatch() {
+		try{
+			String choixOperation = readConsoleInput("^addNewCommune|selectCommuneNameInBase$", 
+					"Quelle opération choissisez vous pour résoudre la correspondance ?"
+					+ "Choisir addNewCommune si la commune correspondante n'est clairement pas en base"
+					+ "Choisir selectCommuneNameInBase si la commune apparaît en base (même avec un nom différent)",
+					"Votre réponse", 
+					" addNewCommune ou selectCommuneNameInBase");
+			return choixOperation;
+		}catch(HomeException excep){
+			System.out.println("Impossible de terminer le traitement en cours");
+			return(choixOperationPourNoMatch());
+		}
+	}
+
+	private void handleDifferentNameSeveralMatch(Add add) {
 		System.out.println("Commune soumise et en ligne ont des noms différents");
 		System.out.println("De plus, plusieurs noms de commune en base correspondante à celle en ligne");
-		System.out.println("À vous de choisir la correspondante");
+		System.out.println("Dans ce cas, commune soumise et en ligne sont différentes");
+		System.out.println("À vous de choisir celle qui correspond");
+		System.out.println("Ce genre de cas ne devrait pas arriver car les couples nom commune et code dep sont uniques");
+
+		CommuneLink communeLink = add.getCommuneLink();
+		searchTheCorrespondingCommune();
+		int refCommuneSelected = selectAcommuneFromTheResults();
+		Commune communeSelected = new Commune();
+		communeSelected.setRefCommune(refCommuneSelected);
+		CommuneDao comDao = new CommuneDao();
+		communeSelected = comDao.findOne(communeSelected.getRefCommune());
+		if(communeSelected.getCodePostal().equals("")){
+			communeSelected.setCodePostal(communeLink.onLine.getCodePostal());
+			System.out.println("Mise à jour du code postal de la commune correspondante");
+			comDao.updateCodePostal(communeLink.onLine);
+		}else{
+			System.out.println("Pas de besoin de mettre à jour code postal de la commune correspondante"
+					+ " car La commune en base correspondante à celle online avait déjà un code postal");
+		}
+		communeLink.onLine=communeSelected;
+
+
+		System.out.println("Mise à jour de la ref commune de l'add");
+		AddDao addDao = new AddDao();
+		addDao.updateRefCommune(add);
 
 	}
 
-	private void printCaseSameNameSeveralMatch(CommuneLink communeLink) {
+	private void handleSameNameSeveralMatch(Add add) {
 		System.out.println("Commune soumise et en ligne ont le même nom");
 		System.out.println("De plus, plusieurs noms de commune en base correspondante à celle en ligne");
-		System.out.println("À vous de choisir la correspondante");
+		System.out.println("Dans ce cas, commune soumise et en ligne peuvent être les mêmes");
+		System.out.println("À vous de choisir celle qui correspond");
+		System.out.println("Ce genre de cas ne devrait pas arriver car les couples nom commune et code dep sont uniques");
+
+		CommuneLink communeLink = add.getCommuneLink();
+		searchTheCorrespondingCommune();
+		int refCommuneSelected = selectAcommuneFromTheResults();
+		Commune communeSelected = new Commune();
+		communeSelected.setRefCommune(refCommuneSelected);
+		CommuneDao comDao = new CommuneDao();
+		communeSelected = comDao.findOne(communeSelected.getRefCommune());
+		if(communeSelected.getCodePostal().equals("")){
+			communeSelected.setCodePostal(communeLink.onLine.getCodePostal());
+			System.out.println("Mise à jour du code postal de la commune correspondante");
+			comDao.updateCodePostal(communeLink.onLine);
+		}else{
+			System.out.println("Pas de besoin de mettre à jour code postal de la commune correspondante"
+					+ " car La commune en base correspondante à celle online avait déjà un code postal");
+		}
+		communeLink.onLine=communeSelected;
+		
+		System.out.println("Mise à jour de la ref commune de l'add");
+		AddDao addDao = new AddDao();
+		addDao.updateRefCommune(add);
+		if(isOnlinCorrespondToSubmit()){
+			communeLink.submit = communeLink.onLine;
+		}
 	}
 
-	private void printCasePerfectMatch() { 
+	private void handlePerfectMatch(Add add) { 
 		System.out.println(" C'est un perfect match !");
 		System.out.println(" Le nom de la commune et le code postal sont identiques");
+		System.out.println("Dans ce cas, commune soumise et en ligne sont les mêmes");
 		System.out.println(" Il n'y a donc pas de problème de correspondance");
+		CommuneLink communeLink = add.getCommuneLink();
+		communeLink.onLine=communeLink.submit;
+		System.out.println("Tout est ok ! Pas de mise à jour à faire");
 	}
 
-	private void printCaseDifferentNameOneMatch(CommuneLink communeLink) {
+	private void handleDifferentNameOneMatch(Add add) {
 		System.out.println("Commune soumise et en ligne ont des noms différents");
 		System.out.println("De plus, un seul nom de commune en base correspondante à celle en ligne");
 		System.out.println(" Problème de correspondance qui va être résolu automatiquement");
+		System.out.println("Dans ce cas, commune soumise et en ligne sont différentes");
+		System.out.println(" On va récupérer la ref de la commune online "
+				+ "\net updater avec cette ref commune la ref de l'add");
+
+		// récupération de la commune online en base et mise à jour de son code postal
+		CommuneLink communeLink = add.getCommuneLink();
+		String codePostalOnline = communeLink.onLine.getCodePostal();
+		CommuneDao comDao = new CommuneDao();
+		communeLink.onLine = comDao.findOneWithNomCommuneAndCodeDep(communeLink.onLine);
+		if(communeLink.onLine.getCodePostal().equals("")){
+			System.out.println("Mise à jour du code postal de la commune correspondante");
+			communeLink.onLine.setCodePostal(codePostalOnline);
+			communeLink.onLine.updateCodePostal();
+		}else{
+			System.out.println("Pas de besoin de mettre à jour code postal de la commune correspondante"
+					+ " car La commune en base correspondante à celle online avait déjà un code postal");
+		}
+
+		System.out.println("Mise à jour de la ref commune de l'add");
+		AddDao addDao = new AddDao();
+		addDao.updateRefCommune(add);
 
 	}
 
-	private void printCaseSameNameOneMatch(CommuneLink communeLink) {
+	private void handleSameNameOneMatch(Add add) {
 		System.out.println("Commune soumise et en ligne ont le même non");
 		System.out.println("De plus, une unique commune en base correspondante à celle en ligne");
-		System.out.println(" Il n'y a donc pas de problème de correspondance");
+		System.out.println("Ce problème de correspondance va être géré automatiquement");
+		System.out.println("Dans ce cas, commune soumise et en ligne sont les mêmes");
+		System.out.println("Mise à jour du code postal de online (qui est aussi submit)");
 
+		CommuneLink communeLink = add.getCommuneLink();
+		communeLink.codePostalGoToSubmit();
+		communeLink.onLine=communeLink.submit;
+		System.out.println("Mise à jour du code postal de la commune correspondante");
+		communeLink.onLine.updateCodePostal();
 	}
 
-	private OperationToSolveMatching findTheOperationToResolveMatching(CommuneLink communeLink) {
-		String choixOpe;
-		do{
-			rechercheCommuneInbdd();
-			choixOpe = choixPourFaireLaCorrespondance();
-		}while(choixOpe.equals("recherche"));
-		return OperationToSolveMatching.valueOf(choixOpe);
+	private void handleNoSubmitSeveralMatch(Add add) {
+		System.out.println("La commune soumise n'existe pas ! ");
+		System.out.println("C'est une annonce pas enregistré pendant la publication");
+		System.out.println("La commune en ligne a plusieurs communes correspondante en base");
+		System.out.println("À vous de choisir la commune correspondante à celle en ligne");
+		System.out.println("Ce genre de cas ne devrait pas arriver car les couples nom commune et code dep sont uniques");
 
+		CommuneLink communeLink = add.getCommuneLink();
+		searchTheCorrespondingCommune();
+		int refCommuneSelected = selectAcommuneFromTheResults();
+		Commune communeSelected = new Commune();
+		communeSelected.setRefCommune(refCommuneSelected);
+		CommuneDao comDao = new CommuneDao();
+		communeSelected = comDao.findOne(communeSelected.getRefCommune());
+		if(communeSelected.getCodePostal().equals("")){
+			communeSelected.setCodePostal(communeLink.onLine.getCodePostal());
+			System.out.println("Mise à jour du code postal de la commune correspondante");
+			comDao.updateCodePostal(communeLink.onLine);
+		}else{
+			System.out.println("Pas de besoin de mettre à jour code postal de la commune correspondante"
+					+ " car La commune en base correspondante à celle online avait déjà un code postal");
+		}
+		communeLink.onLine=communeSelected;
+		
+		System.out.println("Mise à jour de la ref commune de l'add");
+		AddDao addDao = new AddDao();
+		addDao.updateRefCommune(add);
+	}
+
+	private void handleNoSubmitOneMatch(Add add) {
+		System.out.println("La commune soumise n'existe pas ! ");
+		System.out.println("C'est une annonce pas enregistré pendant la publication");
+		System.out.println("La commune en ligne a une unique communes correspondante en base");
+		System.out.println("Cette correspondance va être géré automatiquement");
+		
+		CommuneLink communeLink = add.getCommuneLink();
+		String codePostalOnline = communeLink.onLine.getCodePostal();
+		CommuneDao comDao = new CommuneDao();
+		communeLink.onLine= comDao.findOneWithNomCommuneAndCodeDep(communeLink.onLine);
+		
+		if(communeLink.onLine.getCodePostal().equals("")){
+			System.out.println("Mise à jour du code postal de la commune correspondante");
+			communeLink.onLine.setCodePostal(codePostalOnline);
+			communeLink.onLine.updateCodePostal();
+		}else{
+			System.out.println("Pas de besoin de mettre à jour code postal de la commune correspondante"
+					+ " car La commune en base correspondante à celle online avait déjà un code postal");
+		}
+		System.out.println("Mise à jour de la ref commune de l'add");
+		AddDao addDao = new AddDao();
+		addDao.updateRefCommune(add);
+		
+		
+		
+	}
+
+	private void handleNoSubmitNoMatch(Add add) {
+		System.out.println("La commune soumise n'existe pas ! ");
+		System.out.println("C'est une annonce pas enregistré pendant la publication");
+		System.out.println("La commune en ligne n'a pas de communes correspondante en base");
+		System.out.println("À vous  : "
+				+ "\n de trouver la commune en bdd correspondante (si le nom est lègerement, il sera updaté)"
+				+ "\n  ou de l'ajouter");
+		
+		CommuneLink communeLink = add.getCommuneLink();
+		CommuneDao comDao = new CommuneDao();
+		
+		searchTheCorrespondingCommune();
+		String choixOperation = choixOperationPourNoMatch();
+		if(choixOperation.equals("addNewCommune")){
+			Commune communeToInsert = saisirCommunesToInsert();
+			communeToInsert.setCodePostal(communeLink.onLine.getCodePostal());
+			communeToInsert.setNomCommune(communeLink.onLine.getNomCommune());
+			Commune communeInserted =comDao.save(communeToInsert);
+			communeLink.onLine=communeInserted;
+			
+		}else if(choixOperation.equals("selectCommuneNameInBase")){
+			System.out.println("Saisir l'id de la commune en base correspondante à celle en ligne"
+					+ " dont le nom sera remplacé par celui online");
+			int refCommuneSelected = selectAcommuneFromTheResults();
+			Commune communeSelected = comDao.findOne(refCommuneSelected);
+			communeSelected.setNomCommune(communeLink.onLine.getNomCommune());
+			communeSelected.setCodePostal(communeLink.onLine.getCodePostal());
+			
+			System.out.println("Mise à jour du code postal de la commune correspondante et de son nom");
+			communeSelected.updateCodePostal();
+			communeSelected.updateNom();
+			communeLink.onLine = communeSelected;	
+		}
+		AddDao addDao = new AddDao();
+		System.out.println("Mise à jour de la ref commune de l'add");
+		addDao.updateRefCommune(add);	
+	}
+
+
+
+	private void searchTheCorrespondingCommune() {
+		String refaire;
+		do{
+			refaire = rechercheCommuneInbdd();
+		}while(refaire.equals("oui"));
 	}		
 
 	private int selectAcommuneFromTheResults() {
@@ -484,10 +709,11 @@ public class PrintManager extends JPanel{
 		}
 	}
 
-	private void rechercheCommuneInbdd() {
+	private String rechercheCommuneInbdd() {
 		try{
 			String elementsRequete = readConsoleInput("^((\\S*)|(0)),((\\d*)|(0)),((\\d*)|(0))$", 
-					"Entrez votre requête pour rechercher la commune correspondante à celle du bon coin dans la base"
+					"Entrez votre requête pour rechercher la commune correspondante à celle du bon coin dans la base "
+							+ " arrêter la recherche si vous l'avez trouver ou pas."
 							+ "\nrequête de la forme : commune,codedep,codecommune"
 							+ "\nexemple de requête : toulou,0,0", 
 							"La réponse ",
@@ -499,21 +725,95 @@ public class PrintManager extends JPanel{
 			}
 			for(Commune communeResult : communesResults){
 				communeResult.printCommune();
-			}	
+			}
+			String refaire = readConsoleInput("^oui|non$", 
+					"Voulez vous refaire une recherche ? ", 
+					"La réponse ",
+					"être oui ou non");
+			return refaire;
 		}catch(HomeException excep){
 			System.out.println("Terminer le traitement en cours avant de revenir au menu");
-			rechercheCommuneInbdd();
+			return(rechercheCommuneInbdd());
 		}
 
 	}
 
 
 
-	public void printCompte() {
-		int i = 0;
+	public void printComptes() {
 		for(CompteLbc compteLbc : objectManager.getComptes()){
-			i++;
-			System.out.println("Compte n°"+i+" : "+compteLbc.getMail()+" - password : "+compteLbc.getPassword());
+			printCompte(compteLbc, false);
+		}
+	}
+
+	private void printCompte(CompteLbc compteLbc, boolean details) {
+
+		Calendar dateLimite = Calendar.getInstance();
+		System.out.print("Compte n°"+compteLbc.getRefCompte()+" : "+compteLbc.getMail()+" - pseudo : "+compteLbc.getPseudo());
+		if(compteLbc.getPseudo()==null){
+			System.out.print(" <-----");
+		}
+		System.out.println();
+		if(compteLbc.isDisabled()){
+			System.out.println("    password : "+compteLbc.getPassword());
+			System.out.println("Ce compte est désactivé ! ");
+			System.out.println();
+		}else{
+
+			System.out.print("    Nb d'annonces en ligne : "+compteLbc.getNbAnnoncesEnLigne());
+			if(compteLbc.getNbAnnoncesEnLigne()==0){
+				System.out.print(" <-----");
+			}
+			System.out.println();
+			if(compteLbc.isThatCompteNeedsAnIntervention()){
+				dateLimite.add(Calendar.DAY_OF_MONTH, -10);
+				System.out.print("    date dernière activité : "+compteLbc.getPrintableDateDerniereAct());
+				if(compteLbc.getDateDerniereActivite()==null){			
+					System.out.print(" <-----");
+				}else{
+					if(compteLbc.getDateDerniereActivite().before(dateLimite)){
+						System.out.print(" <-----");
+					}
+				}
+				System.out.println();
+
+				System.out.print("    Redirection : "+compteLbc.isRedirection());
+				if(compteLbc.isRedirection()==false){
+					System.out.print(" <-----");
+				}
+				System.out.println();
+
+
+				dateLimite.add(Calendar.DAY_OF_MONTH, 10);
+				System.out.print("    date de péremption : "+compteLbc.getPrintableDateAvantPeremption());
+				if(compteLbc.getDateAvantPeremption()==null){
+					System.out.print(" <-----");
+				}else{
+					if(compteLbc.getDateAvantPeremption().before(dateLimite)){
+						System.out.print(" <-----");
+					}
+				}
+				System.out.println();
+
+
+				dateLimite.add(Calendar.DAY_OF_MONTH, -30);
+				System.out.print("    Dernier contrôle : "+compteLbc.getPrintableDateOfLastControl());
+				if(compteLbc.getDateDernierControle()==null){
+					System.out.print(" <-----");
+				}else{
+					if(compteLbc.getDateDernierControle().before(dateLimite)){
+						System.out.print(" <-----");
+					}
+				}
+				System.out.println();
+
+
+				if(details){
+					System.out.println("    password : "+compteLbc.getPassword());
+				}
+				System.out.println();
+			}
+			System.out.println();
 		}
 	}
 
@@ -686,21 +986,105 @@ public class PrintManager extends JPanel{
 		}
 	}
 
-	public void toSolveAddsNotReferencedWithCommuneNotReferenced() {
-		System.out.println("---- Affichage des annonces non référencés ayant des communes sans référence ----");
-		List<Add> adds = objectManager.getAddsSaver().getAddsNotReferencedWithCommuneNotReferenced();
+	public void menuGestionDesComptes() throws HomeException{
 
-		for(Add add : adds){
-			CommuneLink communeLink =add.getCommuneLink();
-			communeLink.printCommuneOnLine();
-
-
+		boolean continueBoucle = true;
+		while (continueBoucle) {
+			System.out.println("---------- MENU DE GESTION DES COMPTES -----------");
+			System.out.println();
+			printCompte(objectManager.getCompteInUse(), true);
+			System.out.println("1 : Mettre à jour le pseudo");
+			System.out.println("2 : Enregistrer une activité du compte");
+			System.out.println("3 : Confirmez la redirection");
+			System.out.println("4 : Désactivez ou réactivez un compte");
+			System.out.println("5 : Revenir au menu d'acceuil");
+			System.out.println();
+			String saisie = readConsoleInput("^1|2|3|4$",
+					"Que voulez vous faire ? ",
+					"Votre réponse", "1,2, 3 ou 4");
+			// Enregistrement du choix de l'utilisateur dans numéro
+			switch (saisie) {
+			// si le numéro, on va créer un doodle
+			case "1":
+				updatePseudo();
+				break;
+			case "2":
+				saveActivity();
+				break;
+			case "3":
+				confirmRedirection();
+				break;
+			case "4":
+				disableOrEnable();
+				break;
+			case "5":
+				throw new HomeException();
+			default:
+				System.out.println("Erreur de saisie");
+				break;
+			}
 		}
+	}
+
+	private void disableOrEnable() throws HomeException{
+		String confirmation = readConsoleInput("^activer|desactiver$",
+				"Voulez vous activer ou désactiver le compte "+objectManager.getCompteInUse().getMail()+" :",
+				"Votre réponse", 
+				" être activer ou desactiver");
+		CompteLbcDao compteDao = new CompteLbcDao();
+		CompteLbc compteInUse = objectManager.getCompteInUse();
+		if(confirmation.equals("activer")){
+			compteInUse.setDisabled(false);
+		}else{
+			compteInUse.setDisabled(true);
+			compteInUse.setDateOfDisabling(Calendar.getInstance());
+		}
+		compteDao.updateEnabled(compteInUse);
+	}
+
+	private void updatePseudo() throws HomeException{
+		String pseudo = readConsoleInput("^\\S{3,}$",
+				"Entrez le nouveau pseudo pour le compte "+objectManager.getCompteInUse().getMail()+" :",
+				"Votre réponse", " faire plus de 3 caractères");
+		CompteLbcDao compteDao = new CompteLbcDao();
+		CompteLbc compteInUse = objectManager.getCompteInUse();
+		compteInUse.setPseudo(pseudo);
+		compteDao.updatePseudo(compteInUse);
+	}
+
+	private void saveActivity() throws HomeException{
+		String confirmation = readConsoleInput("^oui|non$",
+				"Confirmez vous une activité pour le compte "+objectManager.getCompteInUse().getMail()+" :",
+				"Votre réponse", 
+				" être oui ou non");
+		if(confirmation.equals("oui")){
+			CompteLbcDao compteDao = new CompteLbcDao();
+			CompteLbc compteInUse = objectManager.getCompteInUse();
+			compteInUse.setDateDerniereActivite(Calendar.getInstance());
+			compteDao.updateDateDerniereActivite(compteInUse);			
+		}
+	}
+
+	private void confirmRedirection() throws HomeException{
+		String confirmation = readConsoleInput("^oui|non$",
+				"Confirmez que la redirection est en place pour le compte "+objectManager.getCompteInUse().getMail()+" :",
+				"Votre réponse", 
+				" être oui ou non");
+		CompteLbcDao compteDao = new CompteLbcDao();
+		CompteLbc compteInUse = objectManager.getCompteInUse();
+		if(confirmation.equals("oui")){
+			compteInUse.setRedirection(true);
+		}else{
+			compteInUse.setRedirection(false);
+		}
+		compteDao.updateRedirection(compteInUse);
 
 	}
 
-
 }
+
+
+
 
 
 
