@@ -172,35 +172,7 @@ public class AddsGenerator {
 		}
 	}
 
-	public void saveTexteFromXlsx(File file, String typeTexte){
-		try{
-			
-			List<String[]> contenuCsv = new ArrayList<String[]>();
-			File outputFile = new File("./texte_csv_tampon.csv");
-			XlstoCSV.xls(file, outputFile);
-			CSVReader reader = new CSVReaderBis(new FileReader(outputFile.getAbsolutePath()));
-			Iterator<String[]> it = reader.iterator();
-			while(it.hasNext()){
-				String[] line = it.next();
-				if(!line[0].equals("")){
-					contenuCsv.add(line);
-				}
-			}
-			reader.close();
-			TexteDao texteDao = new TexteDao();
-			for(String[] texte : contenuCsv){
-				Texte texteFromXlsx = new Texte();
-				texteFromXlsx.setCorpsTexteInBase(texte[0]);
-				texteFromXlsx.setTypeTexte(TypeTexte.valueOf(typeTexte));
-				System.out.println(texteFromXlsx);
-				texteDao.save(texteFromXlsx);
-				
-			}
-		}catch(Exception exception){
-			System.out.println("Problème avec le fichier de chemin : "+file.getAbsolutePath());
-			exception.printStackTrace();
-		}
-	}
+
 
 	public void setTitleSource() {
 		switch (typeSourceTitles) {

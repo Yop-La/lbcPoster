@@ -22,6 +22,7 @@ import scraper.PathToAdds;
 import scraper.ResultsControl;
 import scraper.Source;
 import scraper.Texte;
+import scraper.TexteAndTitleManager;
 import scraper.Title;
 import scraper.TypeTexte;
 import scraper.TypeTitle;
@@ -318,13 +319,6 @@ public class ObjectManager {
 
 	public void setNbAddsPublie(int nbAddsPublie) {
 		this.nbAddsPublie = nbAddsPublie;
-	}
-
-	public void addNewTextInBdd(File file, String typeTexte) {
-		AddsGenerator addsGenerator = new AddsGenerator();
-		addsGenerator.saveTexteFromXlsx(file, typeTexte);
-
-
 	}
 
 	public List<Add> getAddsPublieAvtMode() {

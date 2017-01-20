@@ -58,7 +58,8 @@ public class MoteurConsole {
 			System.out.println("2 : Ajouter un nouveau compte LBC");
 			System.out.println("3 : Controler un compte LBC");
 			System.out.println("4 : Gérer les comptes LBC");
-			System.out.println("5 : Enregistrer des nouveaux textes dans la bdd");
+			System.out.println("5 : Gérer les titres et les textes");
+			System.out.println("6 : Afficher résumé des annonces en ligne");
 			System.out.println();
 			String saisie = Console.readString("Que voulez vous faire ?");
 			// Enregistrement du choix de l'utilisateur dans numéro
@@ -95,7 +96,14 @@ public class MoteurConsole {
 				break;
 			case "5":
 				try {
-					addNewTextInBdd();
+					printManager.menuAddTextesTitre();
+				} catch (HomeException homeException) {
+					continueBoucle = true;
+				}
+				break;
+			case "6":
+				try {
+					printManager.menuSummary();
 				} catch (HomeException homeException) {
 					continueBoucle = true;
 				}
@@ -113,13 +121,11 @@ public class MoteurConsole {
 		}
 	}
 
-	private void addNewTextInBdd() throws HomeException{
-		System.out.println("------    AJOUT DE TEXTES À LA BDD   ------");
-		File path = printManager.selectFileWithTexte();
-		String typeTexte = printManager.chooseTypeTexte();
-		manager.addNewTextInBdd(path, typeTexte);
-		System.out.println("Textes bien enregistrés dans la bdd");
+	private void bilan() {
+		// TODO Auto-generated method stub
+		
 	}
+
 
 
 	private void gererCompteLbc() throws HomeException{
@@ -185,9 +191,6 @@ public class MoteurConsole {
 		}else{
 			System.out.println("Les annonces sont pas prêtes à être sauvegardés");
 		}
-
-
-
 	}
 
 

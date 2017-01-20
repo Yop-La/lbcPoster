@@ -424,4 +424,26 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 
 	}
 
+	public int getNumberOfAddsOnline() {
+		int retour=0;
+		try(Connection maConnection = getConnection()){	
+
+			try(PreparedStatement statement = 
+			maConnection.prepareStatement("select count(*) from adds_lbc where "
+					+ " etat = 'onLine'")){
+				//statement.setInt(1, addToFind.getCommune().getRefCommune());
+				ResultSet rs = statement.executeQuery();
+				if (rs.next()) {
+					retour = rs.getInt(1);
+				}
+				return retour;
+			}
+	}catch(SQLException e){
+		e.printStackTrace();
+		return 0;
+	}
+	}
+	
+	
+
 }

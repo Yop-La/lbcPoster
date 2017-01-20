@@ -1,6 +1,7 @@
 package service;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -15,6 +16,7 @@ import exception.HomeException;
 import fr.doodle.dao.AddDao;
 import fr.doodle.dao.CommuneDao;
 import fr.doodle.dao.CompteLbcDao;
+import fr.doodle.dao.ResumeDao;
 import fr.doodle.dao.TexteDao;
 import fr.doodle.dao.TitreDao;
 import scraper.Add;
@@ -25,7 +27,9 @@ import scraper.CompteLbc;
 import scraper.OperationToSolveMatching;
 import scraper.ResultsControl;
 import scraper.Source;
+import scraper.StatsOnCommune;
 import scraper.Texte;
+import scraper.TexteAndTitleManager;
 import scraper.Title;
 import scraper.TypeTexte;
 import scraper.TypeTitle;
@@ -268,7 +272,7 @@ public class PrintManager extends JPanel{
 			System.out.println();
 			indiceAdd++;
 			valider("Voulez vous passer à la commune suivante ? ");
-			
+
 		}
 	}
 	// cette méthode reçoit en entrée :
@@ -332,7 +336,7 @@ public class PrintManager extends JPanel{
 			System.out.println("Pas de code postal de submit à enregistrer \n"
 					+ "car pas de commune soumise enregistré au moment de la publication");
 		}else{
-			if(communeLink.submit.equals("")){
+			if(communeLink.submit.getCodePostal().equals("")){
 				System.out.println("Mise à jour du code postal de la commune soumise");
 				communeLink.submit.setCodePostal(saisirCodePostal());
 				communeLink.submit.updateCodePostal();
@@ -342,7 +346,7 @@ public class PrintManager extends JPanel{
 			}
 		}
 	}
-	
+
 	private boolean valider(String message) {
 		try{
 			String confirmation = readConsoleInput("^o|n$", 
@@ -359,7 +363,7 @@ public class PrintManager extends JPanel{
 			return(isOnlinCorrespondToSubmit());
 		}
 	}
-	
+
 
 	private void handleDifferentNameNoMatch(Add add) {
 		System.out.println("Commune soumise et en ligne ont des noms différents");
@@ -372,7 +376,7 @@ public class PrintManager extends JPanel{
 
 		CommuneLink communeLink = add.getCommuneLink();
 		CommuneDao comDao = new CommuneDao();
-		
+
 		searchTheCorrespondingCommune();
 		String choixOperation = choixOperationPourNoMatch();
 		if(choixOperation.equals("addNewCommune")){
@@ -381,7 +385,7 @@ public class PrintManager extends JPanel{
 			communeToInsert.setNomCommune(communeLink.onLine.getNomCommune());
 			Commune communeInserted =comDao.save(communeToInsert);
 			communeLink.onLine=communeInserted;
-			
+
 		}else if(choixOperation.equals("selectCommuneNameInBase")){
 			System.out.println("Saisir l'id de la commune en base correspondante à celle en ligne"
 					+ " dont le nom sera remplacé par celui online");
@@ -389,7 +393,7 @@ public class PrintManager extends JPanel{
 			Commune communeSelected = comDao.findOne(refCommuneSelected);
 			communeSelected.setNomCommune(communeLink.onLine.getNomCommune());
 			communeSelected.setCodePostal(communeLink.onLine.getCodePostal());
-			
+
 			System.out.println("Mise à jour du code postal de la commune correspondante et de son nom");
 			communeSelected.updateCodePostal();
 			communeSelected.updateNom();
@@ -401,8 +405,8 @@ public class PrintManager extends JPanel{
 		if(isOnlinCorrespondToSubmit()){
 			communeLink.submit = communeLink.onLine;
 		}
-			
-		
+
+
 
 	}
 
@@ -427,9 +431,9 @@ public class PrintManager extends JPanel{
 		try{
 			String choixOperation = readConsoleInput("^addNewCommune|selectCommuneNameInBase$", 
 					"Quelle opération choissisez vous pour résoudre la correspondance ?"
-					+ "Choisir addNewCommune si la commune correspondante n'est clairement pas en base"
-					+ "Choisir selectCommuneNameInBase si la commune apparaît en base (même avec un nom différent)",
-					"Votre réponse", 
+							+ "Choisir addNewCommune si la commune correspondante n'est clairement pas en base"
+							+ "Choisir selectCommuneNameInBase si la commune apparaît en base (même avec un nom différent)",
+							"Votre réponse", 
 					" addNewCommune ou selectCommuneNameInBase");
 			return choixOperation;
 		}catch(HomeException excep){
@@ -492,7 +496,7 @@ public class PrintManager extends JPanel{
 					+ " car La commune en base correspondante à celle online avait déjà un code postal");
 		}
 		communeLink.onLine=communeSelected;
-		
+
 		System.out.println("Mise à jour de la ref commune de l'add");
 		AddDao addDao = new AddDao();
 		addDao.updateRefCommune(add);
@@ -576,7 +580,7 @@ public class PrintManager extends JPanel{
 					+ " car La commune en base correspondante à celle online avait déjà un code postal");
 		}
 		communeLink.onLine=communeSelected;
-		
+
 		System.out.println("Mise à jour de la ref commune de l'add");
 		AddDao addDao = new AddDao();
 		addDao.updateRefCommune(add);
@@ -587,12 +591,12 @@ public class PrintManager extends JPanel{
 		System.out.println("C'est une annonce pas enregistré pendant la publication");
 		System.out.println("La commune en ligne a une unique communes correspondante en base");
 		System.out.println("Cette correspondance va être géré automatiquement");
-		
+
 		CommuneLink communeLink = add.getCommuneLink();
 		String codePostalOnline = communeLink.onLine.getCodePostal();
 		CommuneDao comDao = new CommuneDao();
 		communeLink.onLine= comDao.findOneWithNomCommuneAndCodeDep(communeLink.onLine);
-		
+
 		if(communeLink.onLine.getCodePostal().equals("")){
 			System.out.println("Mise à jour du code postal de la commune correspondante");
 			communeLink.onLine.setCodePostal(codePostalOnline);
@@ -604,9 +608,9 @@ public class PrintManager extends JPanel{
 		System.out.println("Mise à jour de la ref commune de l'add");
 		AddDao addDao = new AddDao();
 		addDao.updateRefCommune(add);
-		
-		
-		
+
+
+
 	}
 
 	private void handleNoSubmitNoMatch(Add add) {
@@ -616,10 +620,10 @@ public class PrintManager extends JPanel{
 		System.out.println("À vous  : "
 				+ "\n de trouver la commune en bdd correspondante (si le nom est lègerement, il sera updaté)"
 				+ "\n  ou de l'ajouter");
-		
+
 		CommuneLink communeLink = add.getCommuneLink();
 		CommuneDao comDao = new CommuneDao();
-		
+
 		searchTheCorrespondingCommune();
 		String choixOperation = choixOperationPourNoMatch();
 		if(choixOperation.equals("addNewCommune")){
@@ -628,7 +632,7 @@ public class PrintManager extends JPanel{
 			communeToInsert.setNomCommune(communeLink.onLine.getNomCommune());
 			Commune communeInserted =comDao.save(communeToInsert);
 			communeLink.onLine=communeInserted;
-			
+
 		}else if(choixOperation.equals("selectCommuneNameInBase")){
 			System.out.println("Saisir l'id de la commune en base correspondante à celle en ligne"
 					+ " dont le nom sera remplacé par celui online");
@@ -636,7 +640,7 @@ public class PrintManager extends JPanel{
 			Commune communeSelected = comDao.findOne(refCommuneSelected);
 			communeSelected.setNomCommune(communeLink.onLine.getNomCommune());
 			communeSelected.setCodePostal(communeLink.onLine.getCodePostal());
-			
+
 			System.out.println("Mise à jour du code postal de la commune correspondante et de son nom");
 			communeSelected.updateCodePostal();
 			communeSelected.updateNom();
@@ -999,7 +1003,7 @@ public class PrintManager extends JPanel{
 			System.out.println("4 : Désactivez ou réactivez un compte");
 			System.out.println("5 : Revenir au menu d'acceuil");
 			System.out.println();
-			String saisie = readConsoleInput("^1|2|3|4$",
+			String saisie = readConsoleInput("^1|2|3|4|5$",
 					"Que voulez vous faire ? ",
 					"Votre réponse", "1,2, 3 ou 4");
 			// Enregistrement du choix de l'utilisateur dans numéro
@@ -1079,6 +1083,130 @@ public class PrintManager extends JPanel{
 		}
 		compteDao.updateRedirection(compteInUse);
 
+	}
+
+
+	public void menuSummary() throws HomeException{
+
+		boolean continueBoucle = true;
+		while (continueBoucle) {
+			System.out.println("---------- RESUME DES ANNONCES -----------");
+			System.out.println();
+			System.out.println("1 : Afficher le nombre de communes différentes avec des annonces.");
+			System.out.println("2 : Revenir au menu d'acceuil");
+			System.out.println();
+			String saisie = readConsoleInput("^1|2$",
+					"Que voulez vous faire ? ",
+					"Votre réponse", " être 1 ou 2");
+			// Enregistrement du choix de l'utilisateur dans numéro
+			switch (saisie) {
+			// si le numéro, on va créer un doodle
+			case "1":
+				printNonUnicityOfCommunes();
+				break;
+			case "2":
+				throw new HomeException();
+			default:
+				System.out.println("Erreur de saisie");
+				break;
+			}
+		}
+
+	}
+
+	private void printNonUnicityOfCommunes() {
+		ResumeDao resumeDao = new ResumeDao();
+		List<StatsOnCommune> statsOnCommunes = resumeDao.getRepeatedOnlineCommune();
+		int nbCommunesDistinctesRepete = statsOnCommunes.size();
+		int nbAddsWithCommuneRepeted=0;
+		for(StatsOnCommune statsOnCommune : statsOnCommunes){
+			String nomCommune = statsOnCommune.getCommune().getNomCommune();
+			int refCommune = statsOnCommune.getCommune().getRefCommune();
+			int nbFoisOnline = statsOnCommune.getNbFoisEnLigne();
+			System.out.println(nomCommune+" est présente "+nbFoisOnline+" fois en ligne (ref add : "+refCommune+")");
+			nbAddsWithCommuneRepeted=nbAddsWithCommuneRepeted+nbFoisOnline;
+		}
+		System.out.println();
+		System.out.println();
+		AddDao addDao = new AddDao();
+		int nbAddsOnline = addDao.getNumberOfAddsOnline();
+		int nbAddsOnlineNotRepeted = nbAddsOnline - nbAddsWithCommuneRepeted;
+		System.out.println("Il y a "+nbAddsOnline+" annonces en ligne");
+		System.out.println("Parmi ces annonces, "+nbAddsOnlineNotRepeted+" sont présentes dans des communes différentes.");
+		System.out.println(" Il y a "+nbCommunesDistinctesRepete+" communes distinces avec plusieurs annonces");
+		System.out.println(" Soi un total de : "+nbAddsWithCommuneRepeted+" annonces mentionnant une commune ayant déjà une annonce");
+		System.out.println();
+	}
+
+	public void menuAddTextesTitre() throws HomeException{
+		boolean continueBoucle = true;
+		while (continueBoucle) {
+			System.out.println("---------- MENU DE GESTION DES TITRES ET DES TEXTES -----------");
+			System.out.println();
+			System.out.println("1 : Ajouter des titres");
+			System.out.println("2 : Ajouter des textes");
+			System.out.println();
+			String saisie = readConsoleInput("^1|2$",
+					"Que voulez vous faire ? ",
+					"Votre réponse", " être 1 ou 2");
+			// Enregistrement du choix de l'utilisateur dans numéro
+			switch (saisie) {
+			// si le numéro, on va créer un doodle
+			case "1":
+				addNewTitreInBdd();
+				break;
+			case "2":
+				addNewTextInBdd();
+				break;
+			default:
+				System.out.println("Erreur de saisie");
+				break;
+			}
+		}
+
+	}
+
+
+	private void addNewTitreInBdd() {
+		// TODO Auto-generated method stub
+
+	}
+
+	private void addNewTextInBdd() throws HomeException{
+		System.out.println("------    AJOUT DE TEXTES À LA BDD   ------");
+		String choix = readConsoleInput("^generer|ajouter$",
+				"Voulez vous générer puis ajouter des textes ou juste ajouter des textes ? ",
+				"Votre réponse", " être generer ou ajouter");
+		System.out.println("Sélectionnez le fichier xlsx des textes");
+		File path = selectFileWithTexte();
+		TexteAndTitleManager texteManager = new TexteAndTitleManager();
+		List<List<String>> textes=null;
+		if(choix.equals("generer")){
+			textes = texteManager.getContenuXlsx(path);
+			String nbTextesToGenerate = readConsoleInput("^\\d+$",
+					"Saisir le nombre de textes à générer",
+					"Votre réponse", " être un entier");
+			String confirmation="non";
+			do{
+				textes = texteManager.generateTextes(textes, Integer.parseInt(nbTextesToGenerate));
+			confirmation = readConsoleInput("^oui|non$",
+					"Est ce que la génération dex textes vous convient ?",
+					"Votre réponse", " être oui ou non");
+			}while(confirmation.equals("non"));
+		}else if(choix.equals("ajouter")){
+			textes = texteManager.getContenuXlsx(path);
+		}	
+		String typeTexte = readConsoleInput("^\\S{3,}$",
+				"Saisir le type de texte à ajouter",
+				"Votre réponse", " faire au moins 3 caractères sans espace");
+		try{
+			TypeTexte.valueOf(typeTexte);
+		}catch(Exception exec){
+			System.out.println("Ajouter le type texte à la classe TypeTexte");
+			throw new HomeException();
+		}
+		texteManager.saveTexteFromXlsx(textes, typeTexte);
+		System.out.println("Textes bien enregistrés dans la bdd");
 	}
 
 }
