@@ -10,9 +10,9 @@ import com.opencsv.CSVReader;
 
 import csv.CSVReaderBis;
 import csv.XlstoCSV;
-import fr.doodle.dao.CommuneDao;
-import fr.doodle.dao.TexteDao;
-import fr.doodle.dao.TitreDao;
+import dao.CommuneDao;
+import dao.TexteDao;
+import dao.TitreDao;
 
 public class AddsGenerator {
 
@@ -77,10 +77,10 @@ public class AddsGenerator {
 		}
 	}
 
-	public void setCommuneSource() {
+	public void setCommuneSource(Client clientInUse) {
 		switch (typeSourceCommunes) {
 		case SQL:
-			setCommuneFromSql();
+			setCommuneFromSql(clientInUse);
 			break;
 		case XLSX:
 			setCommuneFromXlsx();
@@ -123,9 +123,9 @@ public class AddsGenerator {
 
 	}
 
-	private void setCommuneFromSql() {
+	private void setCommuneFromSql(Client clientInUse) {
 		CommuneDao communeDao = new CommuneDao();
-		communeSource = communeDao.findWithSelection(this.critSelectVille);
+		communeSource = communeDao.findWithSelection(this.critSelectVille,clientInUse);
 	}
 
 	public void setTexteSource() {

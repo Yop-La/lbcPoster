@@ -1,4 +1,4 @@
-package fr.doodle.dao;
+package dao;
 
 import java.io.Serializable;
 import java.sql.Connection;

@@ -1,5 +1,6 @@
 package scraper;
 
 public enum TypeTitle {
-	sebScolaire122;
+	sebScolaire122,
+	elisabeth200TitresPourVenteMethodeBacMail;
 }

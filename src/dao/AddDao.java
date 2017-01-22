@@ -1,4 +1,4 @@
-package fr.doodle.dao;
+package dao;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,7 +11,9 @@ import java.util.Date;
 import java.util.List;
 
 import exception.MultipleCorrespondanceAddException;
+import ihm.MoteurConsole;
 import scraper.Add;
+import scraper.Client;
 import scraper.Commune;
 import scraper.CompteLbc;
 import scraper.EtatAdd;
@@ -80,7 +82,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 				return entity;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return entity;
 		}
 	}
@@ -111,7 +113,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 				return addToSave;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return addToSave;
 		}
 	}
@@ -142,7 +144,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 				statement.executeUpdate();
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 		}
 	}
 	public void updateRefCommune(Add entity) {
@@ -156,7 +158,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 				statement.executeUpdate();
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 		}
 	}
 	
@@ -217,7 +219,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 			}
 			return nb_corresp;
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return 0;
 		}
 	}
@@ -272,7 +274,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 				throw new MultipleCorrespondanceAddException();// si il y a plus de 2 annonces correspondantes
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return null;
 		}
 
@@ -299,7 +301,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 				return retour;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return null;
 		}
 	}
@@ -321,7 +323,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 				statement.executeUpdate();
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 		}
 
 	}
@@ -347,7 +349,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 				return retour;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return null;
 		}
 	}
@@ -389,7 +391,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 			retour[1] = nbAnnoncesEnAttenteDeModération;
 			return(retour);
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return null;
 		}
 
@@ -418,20 +420,21 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 					return addReferencedOnce;
 				}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return null;
 		}
 
 	}
 
-	public int getNumberOfAddsOnline() {
+	public int getNumberOfAddsOnlineOfAclient(Client client) {
 		int retour=0;
 		try(Connection maConnection = getConnection()){	
 
 			try(PreparedStatement statement = 
 			maConnection.prepareStatement("select count(*) from adds_lbc where "
-					+ " etat = 'onLine'")){
-				//statement.setInt(1, addToFind.getCommune().getRefCommune());
+					+ " etat = 'onLine' "
+					+ " and ref_compte in (select ref_compte from compte_lbc where ref_client = ?)")){
+				statement.setInt(1, client.getRefClient());
 				ResultSet rs = statement.executeQuery();
 				if (rs.next()) {
 					retour = rs.getInt(1);
@@ -439,7 +442,7 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 				return retour;
 			}
 	}catch(SQLException e){
-		e.printStackTrace();
+		e.printStackTrace(MoteurConsole.ps);
 		return 0;
 	}
 	}

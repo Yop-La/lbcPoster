@@ -15,7 +15,9 @@ public class CompteLbc {
 	private Calendar dateAvantPeremption;
 	private boolean disabled;
 	private Calendar dateOfDisabling;
+	private int refClient;
 	
+
 	public CompteLbc(String mail, String password) {
 		super();
 		this.mail = mail;
@@ -185,7 +187,12 @@ public class CompteLbc {
 		}
 		return false;
 	}
-	
+	public int getRefClient() {
+		return refClient;
+	}
+	public void setRefClient(int refClient) {
+		this.refClient = refClient;
+	}	
 	
 	
 	

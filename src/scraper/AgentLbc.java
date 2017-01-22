@@ -18,11 +18,11 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.support.ui.Select;
 
+import dao.AddDao;
 import exception.AddSumitException;
 import exception.AgentLbcFailPublicationException;
 import exception.EchecSoumissionException;
 import exception.NoAddsOnlineException;
-import fr.doodle.dao.AddDao;
 
 
 public class AgentLbc{
@@ -32,16 +32,16 @@ public class AgentLbc{
 	private List<Add> addsToPublish;
 	private List<Add> addsControled;
 	private List<Add> beforeModeration = new ArrayList<Add>();
-	private int nbAddsToPublish;
 	private boolean saveAddToSubmitLbcInBase;
 	JavascriptExecutor jse;
+	ParametresPublication paras;
 
 
 	// constructeur pour publier des annonces à partir fichiers CSV
-	public AgentLbc(CompteLbc compteLbc, int nbAddsToPublish, boolean saveAddToSubmitLbcInBase) {
+	public AgentLbc(CompteLbc compteLbc, boolean saveAddToSubmitLbcInBase, ParametresPublication paras) {
 		this.compteLBC = compteLbc;
-		this.nbAddsToPublish = nbAddsToPublish;
 		this.saveAddToSubmitLbcInBase = saveAddToSubmitLbcInBase;
+		this.paras = paras;
 	}
 
 	public AgentLbc(CompteLbc compteLbc) {
@@ -73,12 +73,7 @@ public class AgentLbc{
 	public void setCompteLBC(CompteLbc compteLBC) {
 		this.compteLBC = compteLBC;
 	}
-	public int getNbAddsToPublish() {
-		return nbAddsToPublish;
-	}
-	public void setNbAddsToPublish(int nbAddsToPublish) {
-		this.nbAddsToPublish = nbAddsToPublish;
-	}
+
 
 	public void setUp(){
 		try{
@@ -113,7 +108,7 @@ public class AgentLbc{
 				surLeLien=false;
 			}
 		}while(!surLeLien);
-		
+
 	}
 
 	public void goToFormDepot(){
@@ -146,6 +141,7 @@ public class AgentLbc{
 					}else if(excep  instanceof AddSumitException){
 						System.out.println("Annonce bien soumise mais parvient pas à cliquer sur dépôt annonce");
 						formulaireSoumis=true;
+						driver.findElement(By.cssSelector(".headerNav_main > li:nth-child(2) > a:nth-child(1)")).click();
 					}
 				} 
 			}
@@ -158,32 +154,32 @@ public class AgentLbc{
 			}
 		}
 		System.out.println("-- Publication terminé --");
+		System.out.println(indexAddPublication+" adds publiés !");
 		return(beforeModeration);
 	}
 
 	private void publishOneAdd(Add addInPublication) throws Exception{
 
-		wait(3000);
+		wait(500);
 		clearForm();
 
 		// sélection de la catégorie
-		wait(3000);
 		new Select(driver.findElement(By.id("category"))).selectByVisibleText("Cours particuliers");
 
 		// saisie du titre
 		driver.findElement(By.id("subject")).click();
-		wait(1500);
+		wait(500);
 		driver.findElement(By.id("subject")).sendKeys(addInPublication.getTitle().getTitre());
 		// saisie du texte
 		driver.findElement(By.id("subject")).click();
-		wait(3000);
+		wait(500);
 		setValue(driver.findElement(By.id("body")), addInPublication.getTexte().getCorpsTexteForPublication());
 
 		// saisie de l'image
-		wait(3000);
+		wait(500);
 		driver.findElement(By.id("image0")).sendKeys(addInPublication.getImage().getAbsolutePath());
 		// saisie du lieu
-		wait(3000);
+		wait(500);
 		boolean saisieCommuneFaite = false;
 		while(!saisieCommuneFaite){
 			try {
@@ -195,20 +191,25 @@ public class AgentLbc{
 		}
 
 
-		wait(1500);
+		wait(500);
 		driver.findElement(By.id("phone")).clear();
-		driver.findElement(By.id("phone")).sendKeys("0668332764");
+		driver.findElement(By.id("phone")).sendKeys(paras.getNumTelephone());
+		if(!paras.isAfficherNum()){
+			do{
+				driver.findElement(By.id("phone_hidden")).click();
+			}while(!driver.findElement(By.id("phone_hidden")).isSelected());
+		}
 
 		// soumission de l'annonce pour vérification
-		wait(5000);
+		wait(500);
 		driver.findElement(By.id("newadSubmit")).click();
-		wait(2000);
+		wait(500);
 
 		// check pour vérification visuelle (à revoir)
 		do{
 			driver.findElement(By.cssSelector("h2.title.toggleElement")).click();// pour controler qu'on est sur la bonne page
 		}while(!driver.findElement(By.cssSelector("h2.title.toggleElement")).getAttribute("class").equals("title toggleElement active"));
-		wait(3000);
+		wait(500);
 		do{
 			driver.findElement(By.id("accept_rule")).click();
 		}while(!driver.findElement(By.id("accept_rule")).isSelected());
@@ -219,12 +220,13 @@ public class AgentLbc{
 		driver.findElement(By.id("lbc_submit")).click();
 		System.out.println("Annonce définitivement soumise");
 		// retour à la page de dépôt des annonces
-		wait(3000);
+		wait(500);
+		driver.findElement(By.cssSelector("a.button-blue:nth-child(2)")).click();
+		driver.findElement(By.cssSelector(".headerNav_main > li:nth-child(2) > a:nth-child(1)")).click();
+
 		try{
-			do{
-				driver.findElement(By.cssSelector("a.button-blue:nth-child(2)")).click();
-			}while(driver.findElement(By.id("subject")).getAttribute("id").equals("body"));
-		}catch(Exception exception){
+			driver.findElement(By.id("subject"));
+		}catch(org.openqa.selenium.NoSuchElementException exec){
 			throw new AddSumitException();
 		}
 
@@ -254,6 +256,10 @@ public class AgentLbc{
 		driver.findElement(By.id("location_p")).sendKeys(Keys.LEFT);
 		wait(500);
 		driver.findElement(By.id("location_p")).sendKeys(Keys.LEFT);
+		wait(500);
+		driver.findElement(By.id("location_p")).sendKeys(Keys.RIGHT);
+		wait(500);
+		driver.findElement(By.id("location_p")).sendKeys(Keys.RIGHT);
 		wait(500);
 		driver.findElement(By.id("location_p")).sendKeys(Keys.ENTER);
 		driver.findElement(By.cssSelector("#map_newad > div.layout:not(.hidden)"));
@@ -364,7 +370,8 @@ public class AgentLbc{
 				add.getCommuneLink().onLine=communeOnLine;
 				String title = driver.findElement(By.cssSelector("h1.no-border")).getText();
 				add.setTitle(new Title(title));
-				String texte = driver.findElement(By.id("description")).getText();
+
+				String texte = driver.findElement(By.cssSelector("p.value")).getText();
 				Texte texteOnLbc = new Texte();
 				texteOnLbc.setCorpsTexteOnLbc(texte);
 				add.setTexte(texteOnLbc);

@@ -1,4 +1,4 @@
-package fr.doodle.dao;
+package dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -6,6 +6,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+
+import ihm.MoteurConsole;
+import scraper.Client;
 import scraper.Commune;
 import scraper.CriteresSelectionVille;
 
@@ -31,7 +34,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				return retour;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return retour;
 		}
 	}
@@ -64,7 +67,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 							return entity;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			try {
 				Thread.sleep(1000000000);
 			} catch (Exception e2) {
@@ -86,7 +89,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 							return entity;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return entity;
 		}
 
@@ -103,7 +106,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 							return entity;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return entity;
 		}
 	}
@@ -136,7 +139,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				return retour;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return retour;
 		}
 	}
@@ -157,7 +160,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				return retour;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return null;
 		}
 	}
@@ -193,11 +196,14 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 	}
 
 	// TODO finir ici pour prendre en compte les régions à cibler ou à éviter 
-	public List<Commune> findWithSelection(CriteresSelectionVille critSelecVille){
+	public List<Commune> findWithSelection(CriteresSelectionVille critSelecVille, Client clientInUse){
 		List<Commune> communes = new ArrayList<Commune>();
 		int indexPointDinterrogation = 1;
-		String requete ="SELECT code_dep, code_commune, nom_commune, pop_totale, code_reg, nom_reg, ref_commune, code_postal from communes"
-				+ " where ref_commune not in (select ref_commune from adds_lbc where etat in('onLine', 'enAttenteModeration'))";
+		String requete ="SELECT code_dep, code_commune, nom_commune, pop_totale, code_reg, nom_reg, ref_commune, code_postal "
+				+ " from communes"
+				+ " where ref_commune not in (select ref_commune from adds_lbc "
+								+ " where etat in('onLine', 'enAttenteModeration') and ref_compte in"
+										+ " (select ref_compte from compte_lbc where ref_client = ?))";
 		if(critSelecVille.getBornInfPop()!=-1){
 			requete = requete + " and pop_totale >= ?";
 		}
@@ -209,6 +215,8 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 		try(Connection maConnection = getConnection()){			
 			try(PreparedStatement getVillesWithSelection = 
 					maConnection.prepareStatement(requete)){
+				getVillesWithSelection.setInt(indexPointDinterrogation, clientInUse.getRefClient());
+				indexPointDinterrogation++;
 				if(critSelecVille.getBornInfPop()!=-1){
 					getVillesWithSelection.setInt(indexPointDinterrogation, critSelecVille.getBornInfPop());
 					indexPointDinterrogation++;
@@ -217,6 +225,8 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 					getVillesWithSelection.setInt(indexPointDinterrogation, critSelecVille.getBornSupPop());
 					indexPointDinterrogation++;
 				}
+				
+				System.out.println(getVillesWithSelection);
 				try(ResultSet results = getVillesWithSelection.executeQuery()){
 					while(results.next()){
 						Commune commune = new Commune(results.getString(1), results.getString(2), results.getString(3), results.getFloat(4), results.getString(5), results.getString(6), results.getInt(7), results.getString(8));
@@ -228,7 +238,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				}
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return null;
 		}
 		return communes;
@@ -267,7 +277,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				}
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return null;
 		}
 		return communes;
@@ -296,7 +306,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				statement.executeUpdate();
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 		}
 	}
 	public boolean isCodePostalNull(Commune commune) {//pour savoir si cette commune est en ligne sur lbc
@@ -313,7 +323,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				return false;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return true;
 		}
 		
@@ -335,7 +345,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				return retour;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return retour;
 		}
 	}
@@ -357,7 +367,7 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 				return retour;
 			}
 		}catch(SQLException e){
-			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
 			return null;
 		}
 	}

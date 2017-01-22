@@ -4,20 +4,24 @@ package service;
 import java.io.File;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.ThreadLocalRandom;
 
+import dao.AddDao;
+import dao.ClientDao;
+import dao.CommuneDao;
+import dao.CompteLbcDao;
 import exception.AgentLbcFailPublicationException;
 import exception.NoAddsOnlineException;
-import fr.doodle.dao.AddDao;
-import fr.doodle.dao.CommuneDao;
-import fr.doodle.dao.CompteLbcDao;
 import scraper.Add;
 import scraper.AddsGenerator;
 import scraper.AgentLbc;
+import scraper.Client;
 import scraper.Commune;
 import scraper.CompteLbc;
 import scraper.CritereSelectionTitre;
 import scraper.CriteresSelectionTexte;
 import scraper.CriteresSelectionVille;
+import scraper.ParametresPublication;
 import scraper.PathToAdds;
 import scraper.ResultsControl;
 import scraper.Source;
@@ -29,6 +33,7 @@ import scraper.TypeTitle;
 
 public class ObjectManager {
 
+	private List<Client> clients;
 	private int nbAddsToPublish;
 	private int nbAddsPublie;
 
@@ -58,6 +63,7 @@ public class ObjectManager {
 	private CommuneDao comDao = new CommuneDao();
 	// résultats contrôle
 	private ResultsControl results;
+	private Client clientInUse;
 
 	public ResultsControl getResults() {
 		return results;
@@ -126,7 +132,7 @@ public class ObjectManager {
 	}
 
 	public void setcommunes() {
-		addsGenerator.setCommuneSource();
+		addsGenerator.setCommuneSource(clientInUse);
 		communeSource = addsGenerator.getCommuneSource();
 	}
 
@@ -159,7 +165,7 @@ public class ObjectManager {
 	// pour récupérer tous les comptes
 	public void setComptes(){
 		CompteLbcDao compteDao = new CompteLbcDao();
-		comptes = compteDao.findAll(); 
+		comptes = compteDao.findAll(clientInUse); 
 	}
 
 	public void setCompte(int identifiant){
@@ -187,8 +193,22 @@ public class ObjectManager {
 		this.nbAddsToPublish = nbAddsToPublish;
 	}
 
-	public void createAgentLbc(int nbAddsToPublish){
-		agentLbc = new AgentLbc(compteInUse, nbAddsToPublish, saveAddToSubmitLbcInBase);
+	public void createAgentLbc(int nbAddsToPublish, String afficherNumTel, String numTel){
+		boolean numTelOnAdds = false;
+		if(afficherNumTel.equals("oui")){
+			numTelOnAdds=true;
+		}else{
+			numTel="0";
+			for(int i=0;i<=9;i++){
+				int randomNum = ThreadLocalRandom.current().nextInt(0, 10);
+				numTel=numTel+randomNum;
+			}
+		}
+		ParametresPublication paras = new ParametresPublication();
+		paras.setAfficherNum(numTelOnAdds);
+		paras.setNbDannoncesAPublier(nbAddsToPublish);
+		paras.setNumTelephone(numTel);
+		agentLbc = new AgentLbc(compteInUse, saveAddToSubmitLbcInBase, paras);
 		setNbAddsToPublish(nbAddsToPublish);
 	}
 
@@ -327,6 +347,43 @@ public class ObjectManager {
 
 	public AddsSaver getAddsSaver() {
 		return addsSaver;
+	}
+
+	public void setClients() {
+		ClientDao clientDao = new ClientDao();
+		this.clients  = clientDao.findAll();
+	}
+
+
+
+	public List<Client> getClients() {
+		return clients;
+	}
+
+
+
+	public void setClientInUse(int refClientChoisie) {
+		for(Client client : clients){
+			if(client.getRefClient()==refClientChoisie){
+				clientInUse = client;
+				return;
+			}
+		}
+		
+	}
+
+
+
+	public void addNewClient(String nom, String prenom) {
+		Client client = new Client();
+		client.setnomClient(nom);
+		client.setPrenomClient(prenom);
+		ClientDao clientDao = new ClientDao();
+		clientDao.save(client);
+	}
+
+	public Client getClientInUse() {
+		return clientInUse;
 	}
 	
 	

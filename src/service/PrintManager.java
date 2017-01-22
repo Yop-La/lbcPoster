@@ -1,7 +1,6 @@
 package service;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -10,17 +9,17 @@ import java.util.regex.Pattern;
 import javax.swing.JFileChooser;
 import javax.swing.JPanel;
 
-import org.apache.poi.util.SystemOutLogger;
-
+import dao.AddDao;
+import dao.CommuneDao;
+import dao.CompteLbcDao;
+import dao.ResumeDao;
+import dao.TexteDao;
+import dao.TitreDao;
 import exception.HomeException;
-import fr.doodle.dao.AddDao;
-import fr.doodle.dao.CommuneDao;
-import fr.doodle.dao.CompteLbcDao;
-import fr.doodle.dao.ResumeDao;
-import fr.doodle.dao.TexteDao;
-import fr.doodle.dao.TitreDao;
+import exception.MenuClientException;
 import scraper.Add;
 import scraper.CaseOfMatching;
+import scraper.Client;
 import scraper.Commune;
 import scraper.CommuneLink;
 import scraper.CompteLbc;
@@ -143,7 +142,7 @@ public class PrintManager extends JPanel{
 		}
 	}
 
-	public String chooseTypeTitle() throws HomeException{
+	public String chooseTypeTitle() throws HomeException, MenuClientException{
 		TitreDao titleDao = new TitreDao();
 		List<TypeTitle> typeTitles = titleDao.findAllTypeTitle();
 		String regex="^";
@@ -163,9 +162,9 @@ public class PrintManager extends JPanel{
 				"Votre réponse", "doit être "+toEnter);
 		return retour;
 	}
-
+	
 	public String readConsoleInput(String regex, String message, String variableASaisir, String format)
-			throws HomeException {
+			throws HomeException, MenuClientException {
 		Pattern p = Pattern.compile(regex);
 		String phraseCloseApplication = "Voulez fermez l'application ? (si il y a un travail, il ne sera pas enregistré)";
 		boolean continueBoucle = true;
@@ -187,6 +186,8 @@ public class PrintManager extends JPanel{
 				break;
 			case "HOME":
 				throw new HomeException();
+			case "MENU CLIENT":
+				throw new MenuClientException();
 			default:
 				Matcher m = p.matcher(input);
 				boolean b = m.matches();
@@ -201,7 +202,7 @@ public class PrintManager extends JPanel{
 		return (input);
 	}
 
-	public String chooseTypeTexte() throws HomeException{
+	public String chooseTypeTexte() throws HomeException, MenuClientException{
 		TexteDao texteDao = new TexteDao();
 		TypeTexte[] typeTitles = TypeTexte.values();
 		String regex="^";
@@ -223,7 +224,7 @@ public class PrintManager extends JPanel{
 		return retour;
 	}
 
-	public void doYouWantToSaveAddIndd() throws HomeException{
+	public void doYouWantToSaveAddIndd() throws HomeException, MenuClientException{
 		String saveAddInBase = readConsoleInput("^oui$|^non$", "Voulez vous sauvegarder les annonces publiés dans la base ?", "Votre réponse ",
 				"être oui ou non.");
 		if(saveAddInBase.equals("oui")){
@@ -271,7 +272,6 @@ public class PrintManager extends JPanel{
 			System.out.println();
 			System.out.println();
 			indiceAdd++;
-			valider("Voulez vous passer à la commune suivante ? ");
 
 		}
 	}
@@ -358,7 +358,7 @@ public class PrintManager extends JPanel{
 			}else{
 				return false;
 			}
-		}catch(HomeException excep){
+		}catch(Exception excep){
 			System.out.println("Impossible de terminer le traitement en cours");
 			return(isOnlinCorrespondToSubmit());
 		}
@@ -421,7 +421,7 @@ public class PrintManager extends JPanel{
 			}else{
 				return false;
 			}
-		}catch(HomeException excep){
+		}catch(Exception excep){
 			System.out.println("Impossible de terminer le traitement en cours");
 			return(isOnlinCorrespondToSubmit());
 		}
@@ -436,7 +436,7 @@ public class PrintManager extends JPanel{
 							"Votre réponse", 
 					" addNewCommune ou selectCommuneNameInBase");
 			return choixOperation;
-		}catch(HomeException excep){
+		}catch(Exception excep){
 			System.out.println("Impossible de terminer le traitement en cours");
 			return(choixOperationPourNoMatch());
 		}
@@ -667,7 +667,7 @@ public class PrintManager extends JPanel{
 					"Entrez l'id de la commune correspondante", 
 					"La réponse ",
 					"être un entier");
-		}catch(HomeException homExecp){
+		}catch(Exception homExecp){
 			System.out.println("Terminer le traitement en cours avant de revenir au menu");
 			return(selectAcommuneFromTheResults());
 		}
@@ -707,7 +707,7 @@ public class PrintManager extends JPanel{
 							"Votre réponse", 
 					" être recherche ou addCommuneOnlineToBdd ou changeTheNameOfCommuneInBase ou linkCommuneOnLineToAnotherCommuneInBase" );
 			return choix;
-		}catch(HomeException home){
+		}catch(Exception home){
 			System.out.println("Terminer le traitement en cours avant de revenir au menu");
 			return "recherche";
 		}
@@ -735,7 +735,7 @@ public class PrintManager extends JPanel{
 					"La réponse ",
 					"être oui ou non");
 			return refaire;
-		}catch(HomeException excep){
+		}catch(Exception excep){
 			System.out.println("Terminer le traitement en cours avant de revenir au menu");
 			return(rechercheCommuneInbdd());
 		}
@@ -858,7 +858,7 @@ public class PrintManager extends JPanel{
 					"Votre réponse", 
 					"doit être un entier");
 			return ret;
-		}catch(HomeException excep){
+		}catch(Exception excep){
 			System.out.println("Impossible de terminer le traitement en cours");
 			return(saisirPopTot());
 		}
@@ -870,7 +870,7 @@ public class PrintManager extends JPanel{
 					"Votre réponse", 
 					" être un entier de 2 à 3 caractères");
 			return ret;
-		}catch(HomeException excep){
+		}catch(Exception excep){
 			System.out.println("Impossible de terminer le traitement en cours");
 			return(saisirCodeCommune());
 		}
@@ -882,7 +882,7 @@ public class PrintManager extends JPanel{
 					"Votre réponse", 
 					" être un entier de 2 à 3 caractères");
 			return ret;
-		}catch(HomeException excep){
+		}catch(Exception excep){
 			System.out.println("Impossible de terminer le traitement en cours");
 			return(saisirCodeReg());
 		}
@@ -894,7 +894,7 @@ public class PrintManager extends JPanel{
 					"Votre réponse", 
 					" être un entier de 5 caractères");
 			return ret;
-		}catch(HomeException excep){
+		}catch(Exception excep){
 			System.out.println("Impossible de terminer le traitement en cours");
 			return(saisirCodePostal());
 		}
@@ -908,7 +908,7 @@ public class PrintManager extends JPanel{
 					"Votre réponse", 
 					" être une chaîne de caractères ne commencant pas par un espace");
 			return ret;
-		}catch(HomeException excep){
+		}catch(Exception excep){
 			System.out.println("Impossible de terminer le traitement en cours");
 			return(saisirNomReg());
 		}
@@ -940,7 +940,7 @@ public class PrintManager extends JPanel{
 						"En attente d'une intervention manuelle ! Mettez à jour la bdd. Tapez OK pour reprendre",
 						"Votre réponse", 
 						" être OK");
-			}catch(HomeException excep){
+			}catch(Exception excep){
 				System.out.println("Impossible de terminer le traitement en cours");
 			}
 		}
@@ -962,7 +962,7 @@ public class PrintManager extends JPanel{
 						"En attente d'une intervention manuelle ! Mettez à jour la bdd. Tapez OK pour reprendre",
 						"Votre réponse", 
 						" être OK");
-			}catch(HomeException excep){
+			}catch(Exception excep){
 				System.out.println("Impossible de terminer le traitement en cours");
 			}
 		}
@@ -984,13 +984,13 @@ public class PrintManager extends JPanel{
 						"En attente d'une intervention manuelle ! Mettez à jour la bdd. Tapez OK pour reprendre",
 						"Votre réponse", 
 						" être OK");
-			}catch(HomeException excep){
+			}catch(Exception excep){
 				System.out.println("Impossible de terminer le traitement en cours");
 			}
 		}
 	}
 
-	public void menuGestionDesComptes() throws HomeException{
+	public void menuGestionDesComptes() throws HomeException, MenuClientException{
 
 		boolean continueBoucle = true;
 		while (continueBoucle) {
@@ -1030,7 +1030,7 @@ public class PrintManager extends JPanel{
 		}
 	}
 
-	private void disableOrEnable() throws HomeException{
+	private void disableOrEnable() throws HomeException, MenuClientException{
 		String confirmation = readConsoleInput("^activer|desactiver$",
 				"Voulez vous activer ou désactiver le compte "+objectManager.getCompteInUse().getMail()+" :",
 				"Votre réponse", 
@@ -1046,7 +1046,7 @@ public class PrintManager extends JPanel{
 		compteDao.updateEnabled(compteInUse);
 	}
 
-	private void updatePseudo() throws HomeException{
+	private void updatePseudo() throws HomeException, MenuClientException{
 		String pseudo = readConsoleInput("^\\S{3,}$",
 				"Entrez le nouveau pseudo pour le compte "+objectManager.getCompteInUse().getMail()+" :",
 				"Votre réponse", " faire plus de 3 caractères");
@@ -1056,7 +1056,7 @@ public class PrintManager extends JPanel{
 		compteDao.updatePseudo(compteInUse);
 	}
 
-	private void saveActivity() throws HomeException{
+	private void saveActivity() throws HomeException, MenuClientException{
 		String confirmation = readConsoleInput("^oui|non$",
 				"Confirmez vous une activité pour le compte "+objectManager.getCompteInUse().getMail()+" :",
 				"Votre réponse", 
@@ -1069,7 +1069,7 @@ public class PrintManager extends JPanel{
 		}
 	}
 
-	private void confirmRedirection() throws HomeException{
+	private void confirmRedirection() throws HomeException, MenuClientException{
 		String confirmation = readConsoleInput("^oui|non$",
 				"Confirmez que la redirection est en place pour le compte "+objectManager.getCompteInUse().getMail()+" :",
 				"Votre réponse", 
@@ -1086,7 +1086,7 @@ public class PrintManager extends JPanel{
 	}
 
 
-	public void menuSummary() throws HomeException{
+	public void menuSummary() throws HomeException, MenuClientException{
 
 		boolean continueBoucle = true;
 		while (continueBoucle) {
@@ -1116,7 +1116,7 @@ public class PrintManager extends JPanel{
 
 	private void printNonUnicityOfCommunes() {
 		ResumeDao resumeDao = new ResumeDao();
-		List<StatsOnCommune> statsOnCommunes = resumeDao.getRepeatedOnlineCommune();
+		List<StatsOnCommune> statsOnCommunes = resumeDao.getRepeatedOnlineCommune(objectManager.getClientInUse());
 		int nbCommunesDistinctesRepete = statsOnCommunes.size();
 		int nbAddsWithCommuneRepeted=0;
 		for(StatsOnCommune statsOnCommune : statsOnCommunes){
@@ -1129,7 +1129,7 @@ public class PrintManager extends JPanel{
 		System.out.println();
 		System.out.println();
 		AddDao addDao = new AddDao();
-		int nbAddsOnline = addDao.getNumberOfAddsOnline();
+		int nbAddsOnline = addDao.getNumberOfAddsOnlineOfAclient(objectManager.getClientInUse());
 		int nbAddsOnlineNotRepeted = nbAddsOnline - nbAddsWithCommuneRepeted;
 		System.out.println("Il y a "+nbAddsOnline+" annonces en ligne");
 		System.out.println("Parmi ces annonces, "+nbAddsOnlineNotRepeted+" sont présentes dans des communes différentes.");
@@ -1138,17 +1138,18 @@ public class PrintManager extends JPanel{
 		System.out.println();
 	}
 
-	public void menuAddTextesTitre() throws HomeException{
+	public void menuAddTextesTitre() throws HomeException, MenuClientException{
 		boolean continueBoucle = true;
 		while (continueBoucle) {
 			System.out.println("---------- MENU DE GESTION DES TITRES ET DES TEXTES -----------");
 			System.out.println();
 			System.out.println("1 : Ajouter des titres");
 			System.out.println("2 : Ajouter des textes");
+			System.out.println("3 : Revenir au menu de gestion précédent");
 			System.out.println();
-			String saisie = readConsoleInput("^1|2$",
+			String saisie = readConsoleInput("^1|2|3$",
 					"Que voulez vous faire ? ",
-					"Votre réponse", " être 1 ou 2");
+					"Votre réponse", " être 1 ou 2 ou 3");
 			// Enregistrement du choix de l'utilisateur dans numéro
 			switch (saisie) {
 			// si le numéro, on va créer un doodle
@@ -1157,6 +1158,9 @@ public class PrintManager extends JPanel{
 				break;
 			case "2":
 				addNewTextInBdd();
+				break;
+			case "3":
+				continueBoucle=false;
 				break;
 			default:
 				System.out.println("Erreur de saisie");
@@ -1167,12 +1171,26 @@ public class PrintManager extends JPanel{
 	}
 
 
-	private void addNewTitreInBdd() {
-		// TODO Auto-generated method stub
+	private void addNewTitreInBdd() throws HomeException, MenuClientException{
+		System.out.println("------    AJOUT DE TEXTES À LA BDD   ------");
+		File path = selectFileWithTexte();
+		TexteAndTitleManager titleManager = new TexteAndTitleManager();
+		List<List<String>> titles = titleManager.getContenuXlsx(path);
+		String typeTitre = readConsoleInput("^\\S{3,}$",
+				"Saisir le type de texte à ajouter",
+				"Votre réponse", " faire au moins 3 caractères sans espace");
+		try{
+			TypeTitle.valueOf(typeTitre);
+		}catch(Exception exec){
+			System.out.println("Ajouter le type texte à la classe TypeTitre");
+			throw new HomeException();
+		}
+		titleManager.saveTitleFromXlsx(titles, typeTitre);;
+		System.out.println("Textes bien enregistrés dans la bdd");
 
 	}
 
-	private void addNewTextInBdd() throws HomeException{
+	private void addNewTextInBdd() throws HomeException, MenuClientException{
 		System.out.println("------    AJOUT DE TEXTES À LA BDD   ------");
 		String choix = readConsoleInput("^generer|ajouter$",
 				"Voulez vous générer puis ajouter des textes ou juste ajouter des textes ? ",
@@ -1189,9 +1207,9 @@ public class PrintManager extends JPanel{
 			String confirmation="non";
 			do{
 				textes = texteManager.generateTextes(textes, Integer.parseInt(nbTextesToGenerate));
-			confirmation = readConsoleInput("^oui|non$",
-					"Est ce que la génération dex textes vous convient ?",
-					"Votre réponse", " être oui ou non");
+				confirmation = readConsoleInput("^oui|non$",
+						"Est ce que la génération dex textes vous convient ?",
+						"Votre réponse", " être oui ou non");
 			}while(confirmation.equals("non"));
 		}else if(choix.equals("ajouter")){
 			textes = texteManager.getContenuXlsx(path);
@@ -1207,6 +1225,42 @@ public class PrintManager extends JPanel{
 		}
 		texteManager.saveTexteFromXlsx(textes, typeTexte);
 		System.out.println("Textes bien enregistrés dans la bdd");
+	}
+
+	public void printClients() {
+		List<Client> clients  = objectManager.getClients();
+		for(Client client : clients){
+			System.out.println("Le client ref n°"+client.getRefClient()+" : ");
+			System.out.println(client.getPrenomClient()+" "+client.getNomClient());
+			System.out.println();
+		}
+	}
+
+	public int selectClient() throws HomeException, MenuClientException{
+		String elementsRequete="";
+		elementsRequete = readConsoleInput("^\\d+$", 
+				"Entrez la ref du client choisi", 
+				"La réponse ",
+				"être un entier");
+		return(Integer.parseInt(elementsRequete));
+	}
+
+	public String entrerNom() throws HomeException, MenuClientException{
+		String name="";
+		name = readConsoleInput("^\\S.*$", 
+				"Entrez le nom du client à ajouter", 
+				"La réponse ",
+				" commencer par une lettre");
+		return(name);
+	}
+
+	public String entrerPrenom() throws HomeException, MenuClientException{
+		String prenom="";
+		prenom = readConsoleInput("^\\S.*$", 
+				"Entrez le prénom du client à ajouter", 
+				"La réponse ",
+				" commencer par une lettre");
+		return(prenom);
 	}
 
 }

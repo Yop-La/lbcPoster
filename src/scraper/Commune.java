@@ -2,7 +2,7 @@ package scraper;
 
 import org.apache.commons.lang3.StringUtils;
 
-import fr.doodle.dao.CommuneDao;
+import dao.CommuneDao;
 // 36639 communes
 public class Commune {
 	private String codeDep;

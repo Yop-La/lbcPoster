@@ -3,11 +3,11 @@ package service;
 import java.util.ArrayList;
 import java.util.List;
 
+import dao.AddDao;
+import dao.CommuneDao;
+import dao.TexteDao;
+import dao.TitreDao;
 import exception.MultipleCorrespondanceAddException;
-import fr.doodle.dao.AddDao;
-import fr.doodle.dao.CommuneDao;
-import fr.doodle.dao.TexteDao;
-import fr.doodle.dao.TitreDao;
 import scraper.Add;
 import scraper.Commune;
 import scraper.CommuneLink;
@@ -53,7 +53,7 @@ public class AddsSaver {
 	}
 
 
-	
+
 	public void setSubmitCommuneAndRefAddForAddsOnlineReferenced(){
 		AddDao addDao = new AddDao();
 		for(Add addReferencedOnce : addsOnLineWithOneRef){
@@ -61,8 +61,8 @@ public class AddsSaver {
 			addsReadyToSave.add(addReferencedOnce);
 		}
 	}
-	
-	
+
+
 	public void saveAddsOnlineNotReferenced(){
 		for(Add addOnLineNotRerenced : addsOnLineNotReferenced){
 			AddDao addDao = new AddDao();
@@ -70,11 +70,11 @@ public class AddsSaver {
 			addsReadyToSave.add(addOnLineNotRerenced);
 		}
 	}
-	
+
 	public boolean isReadyToSave(){
 		return(addsReadyToSave.size() == addsToControle.size());
 	}
-	
+
 	// en entrée : addsOnLineWithTexteAndTitleInBdd
 	// c'est la liste des adds online
 	// 1°) certaines sont référencées et vont matchés à la bdd grâce au titre et au texte
@@ -180,30 +180,35 @@ public class AddsSaver {
 			Texte texteFrBdd=null;
 			int nbRecherche = 0;
 			boolean continueRecherche = true;
-			do{
-				Texte texteLbc = add.getTexte();
-				textesCorrespondant = texteDao.findWithCorpsTexte(texteLbc);
-				int levelCorresp = texteLbc.getLevelCorrespondance();
-				int nbCorrespon = textesCorrespondant.size();
-				if(nbCorrespon==0){
-					texteLbc.setLevelCorrespondance(levelCorresp+1);
-					System.out.println("Pas de correspondance de texte à la recherche n°"+nbRecherche);
-				}else if(nbCorrespon>=2){
-					texteFrBdd = textesCorrespondant.get(0);
-					// on parcourt les textes de la bbd pour prendre celui avec la plus petite distance de Levenshtein
-					for(Texte texteCorresp : textesCorrespondant){
-						if(texteCorresp.getLevenshteinDistanceBetweenLbcAndBdd()<=texteFrBdd.getLevenshteinDistanceBetweenLbcAndBdd()){
-							texteFrBdd=texteCorresp;
+			try{
+				do{
+					nbRecherche=1;
+					Texte texteLbc = add.getTexte();
+					textesCorrespondant = texteDao.findWithCorpsTexte(texteLbc);
+					int levelCorresp = texteLbc.getLevelCorrespondance();
+					int nbCorrespon = textesCorrespondant.size();
+					if(nbCorrespon==0){
+						texteLbc.setLevelCorrespondance(levelCorresp+1);
+						System.out.println("Pas de correspondance de texte à la recherche n°"+nbRecherche);
+					}else if(nbCorrespon>=2){
+						texteFrBdd = textesCorrespondant.get(0);
+						// on parcourt les textes de la bbd pour prendre celui avec la plus petite distance de Levenshtein
+						for(Texte texteCorresp : textesCorrespondant){
+							if(texteCorresp.getLevenshteinDistanceBetweenLbcAndBdd()<=texteFrBdd.getLevenshteinDistanceBetweenLbcAndBdd()){
+								texteFrBdd=texteCorresp;
+							}
 						}
+						System.out.println("Plus de 2 correspondance de texte à la recherche n°"+nbRecherche);
+						continueRecherche = false;
+					}else{
+						texteFrBdd = textesCorrespondant.get(0);
+						continueRecherche = false;
 					}
-					System.out.println("Plus de 2 correspondance de texte à la recherche n°"+nbRecherche);
-					continueRecherche = false;
-				}else{
-					texteFrBdd = textesCorrespondant.get(0);
-					continueRecherche = false;
-				}
-				nbRecherche++;
-			}while(continueRecherche);
+					nbRecherche++;
+				}while(continueRecherche);
+			}catch(Exception exec){
+				
+			}
 			if(texteFrBdd.getLevenshteinDistanceBetweenLbcAndBdd()<=30){
 				texteReferenced=true;
 			}
@@ -290,7 +295,7 @@ public class AddsSaver {
 		return addsUpdated;
 	}
 
-	
+
 
 
 

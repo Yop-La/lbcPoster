@@ -5,7 +5,9 @@ public class Title {
 	private TypeTitle typeTitle;
 	private int refTitre;
 	
-	
+	public Title(){
+		
+	}
 	
 	public Title(String titre, TypeTitle typeTitle, int refTitre) {
 		super();

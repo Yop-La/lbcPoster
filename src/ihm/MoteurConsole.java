@@ -1,13 +1,18 @@
 package ihm;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.output.TeeOutputStream;
+
+import dao.CompteLbcDao;
 import exception.HomeException;
+import exception.MenuClientException;
 import exception.NoAddsOnlineException;
-import fr.doodle.dao.CompteLbcDao;
 import scraper.CompteLbc;
 import service.ObjectManager;
 import service.PrintManager;
@@ -17,42 +22,100 @@ public class MoteurConsole {
 
 	ObjectManager manager;
 	PrintManager printManager;
+	public static PrintStream ps;
 
 	public static void main(String[] args) {
+		File file = new File("test.log");
+		try{
+			ps = new PrintStream(file);
+		}catch(Exception excep){
+			excep.printStackTrace(ps);
+		}
+
+		try{
+			MoteurConsole console = new MoteurConsole();
+			console.acceuil();
+		}catch(Exception ex){
+			ex.printStackTrace(ps);
+		}
+		ps.close();
 
 
-		/*
-		do{
-			Scanner in = new Scanner(System.in);
-			String codePostal = in.nextLine();
-			codePostal  = codePostal.substring(0, 2);
-			if(codePostal.substring(0, 1).equals("0")){
-				codePostal=codePostal.substring(1);
-			}
-			System.out.println(codePostal);
-		}while(true);
-		 */
-		MoteurConsole console = new MoteurConsole();
-		console.acceuil();
 	}
 
+	public void acceuil(){
+		manager = new ObjectManager();
+		printManager = new PrintManager(manager);
+		boolean continueBoucle = true;
+		while (continueBoucle) {
+			System.out.println("------------------------------------");
+			System.out.println("------- BIENVENUE DANS ADDS MANAGER ------");
+			System.out.println("------------------------------------");
+			System.out.println();
+			System.out.println("---------    COMMANDES    ----------");
+			System.out.println("ESC : pour quitter l'appli");
+			System.out.println("HOME : pour revenir à ce menu");
+			System.out.println();
+			System.out.println("----------    MENU GESTION DES CLIENTS    -----------");
+			System.out.println();
+			System.out.println("1 : Gerer les annonces d'un client");
+			System.out.println("2 : Ajouter un nouveau client");
+			System.out.println();
+			String saisie="";
+			try{
+				saisie = readConsoleInput("^[1-2]$",
+						"Que voulez vous faire ? ",
+						"Votre réponse", " être un entier entre 1 et 2.");
+				// Enregistrement du choix de l'utilisateur dans numéro
+
+				switch (saisie) {
+				// si le numéro, on va créer un doodle
+				case "1":
+
+					selectAClient();
+					menuGestionCompteClient();
+
+					break;
+				case "2":
+
+					addNewClient();
+
+					break;
+				default:
+					System.out.println("Erreur de saisie");
+					break;
+				}
+			}catch(Exception excep){
+				if(excep instanceof HomeException)
+					System.out.println("Vous êtes déjà dans le menu d'acceuil");
+				else if(excep instanceof MenuClientException)
+					System.out.println("Vous ne pouvez pas vous rendre dans le menu client \n"
+							+ "Il faut d'abord en avoir choisi un !");
+				continueBoucle = true;
+			}
+		}
+	}
+
+	private void addNewClient() throws HomeException, MenuClientException{
+		String nom = printManager.entrerNom();
+		String prenom = printManager.entrerPrenom();
+		manager.addNewClient(nom, prenom);
+	}
+
+	private void selectAClient() throws HomeException, MenuClientException{
+		manager.setClients();
+		printManager.printClients();
+		int refClientChoisie = printManager.selectClient();
+		manager.setClientInUse(refClientChoisie);
+	}
 
 	// Procédure qui permet d'afficher le type de sondage choisi par
 	// l'utilisateur
-	public void acceuil() {
-		manager = new ObjectManager();
-		printManager = new PrintManager(manager);
-		System.out.println("------------------------------------");
-		System.out.println("------- BIENVENUE ADDS MANAGER ------");
-		System.out.println("------------------------------------");
-		System.out.println();
-		System.out.println("---------    COMMANDES    ----------");
-		System.out.println("ESC : pour quitter l'appli");
-		System.out.println("HOME : pour revenir à l'acceuil");
-		System.out.println();
+	public void menuGestionCompteClient() throws HomeException{
 		boolean continueBoucle = true;
 		while (continueBoucle) {
-			System.out.println("----------    ACCUEIL    -----------");
+			manager.setComptes();
+			System.out.println("----------    MENU GESTION D'UN CLIENT    -----------");
 			System.out.println();
 			System.out.println("1 : Publier des annonces");
 			System.out.println("2 : Ajouter un nouveau compte LBC");
@@ -60,76 +123,56 @@ public class MoteurConsole {
 			System.out.println("4 : Gérer les comptes LBC");
 			System.out.println("5 : Gérer les titres et les textes");
 			System.out.println("6 : Afficher résumé des annonces en ligne");
+			System.out.println("7 : Revenir au menu de gestion des clients");
 			System.out.println();
-			String saisie = Console.readString("Que voulez vous faire ?");
-			// Enregistrement du choix de l'utilisateur dans numéro
-			switch (saisie) {
-			// si le numéro, on va créer un doodle
-			case "1":
-				try {
+			try{
+				String saisie = readConsoleInput("^[1-7]$",
+						"Que voulez vous faire ? ",
+						"Votre réponse", " être un entier entre 1 et 7");
+				// Enregistrement du choix de l'utilisateur dans numéro
+				switch (saisie) {
+				// si le numéro, on va créer un doodle
+				case "1":
 					publishAdd();
-				} catch (HomeException homeException) {
-					continueBoucle = true;
-				}
-				break;
-			case "2":
-				try {
+					break;
+				case "2":
 					addNewCompteLbc();
-				} catch (HomeException homeException) {
-					continueBoucle = true;
-				}
-				break;
-			case "3":
-				try {
+					break;
+				case "3":
 					ControlCompteLbc();
-				} catch (HomeException homeException) {
-					continueBoucle = true;
-				}
-				break;
-			case "4":
-				try {
+					break;
+				case "4":
 					gererCompteLbc();
-				} catch (HomeException homeException) {
 					continueBoucle = true;
-				}
-				continueBoucle = true;
-				break;
-			case "5":
-				try {
+					break;
+				case "5":
 					printManager.menuAddTextesTitre();
-				} catch (HomeException homeException) {
-					continueBoucle = true;
-				}
-				break;
-			case "6":
-				try {
+					break;
+				case "6":
 					printManager.menuSummary();
-				} catch (HomeException homeException) {
-					continueBoucle = true;
+					break;
+				case "7":
+					continueBoucle = false;
+					break;
+				default:
+					System.out.println("Erreur de saisie");
+					break;
 				}
-				break;
-			case "ESC":
-				System.out.println("Fermeture de l'application ");
-				return;
-			case "HOME":
-				System.out.println("C'est déjà le menu d'acceuil ! ");
-				break;
-			default:
-				System.out.println("Erreur de saisie");
-				break;
+			}catch(MenuClientException exp){
+				continueBoucle = true;
 			}
 		}
 	}
 
 	private void bilan() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 
 
-	private void gererCompteLbc() throws HomeException{
-		manager.setComptes();
+	private void gererCompteLbc() throws HomeException, MenuClientException {
+
 		System.out.println("---------- MENU DE GESTION DES COMPTES -----------");
 		System.out.println();
 		printManager.printComptes();
@@ -139,7 +182,7 @@ public class MoteurConsole {
 	}
 
 
-	private void ControlCompteLbc() throws HomeException{
+	private void ControlCompteLbc() throws HomeException, MenuClientException {
 		System.out.println("!! Attention !!\n"
 				+ "Bien attendre le passage de la modération lbc avant de contrôler les comptes"
 				+ "\nFaire ce contrôle deux jours après le passage de la modération");
@@ -195,31 +238,49 @@ public class MoteurConsole {
 
 
 
-	private void addNewCompteLbc() throws HomeException {
+	private void addNewCompteLbc() throws HomeException, MenuClientException  {
 		String mail = readConsoleInput("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$", "Entrez le mail du compte LBC à ajouter",
 				"Votre réponse", "doit être une adresse mail");
 		String password = readConsoleInput(".{3,}", "Entrez le password du compte LBC à ajouter",
 				"Votre réponse", "doit être faire plus de 3 caractères");
 		CompteLbc compteToAdd = new CompteLbc(mail, password);
+		compteToAdd.setRefClient(manager.getClientInUse().getRefClient());
 		CompteLbcDao compteLbcDao = new CompteLbcDao();
 		compteLbcDao.save(compteToAdd);
 
 	}
 
 
-	private void publishAdd() throws HomeException{
+	private void publishAdd() throws HomeException, MenuClientException {
 		System.out.println("------    MENU DE PUBLICATION DES ANNONCES   ------");
 		choixDunCompte();
 		printManager.doYouWantToSaveAddIndd();
-		String nbAnnonces = readConsoleInput("^[1-9]\\d*$", "Entrez le nb d'annonces à publier",
-				"Votre réponse", "doit être un entier positif");
-		manager.createAgentLbc(Integer.parseInt(nbAnnonces));
+		String nbAnnonces = readConsoleInput("^[1-9]\\d*$", 
+				"Entrez le nb d'annonces à publier",
+				"Votre réponse", 
+				"doit être un entier positif");
+		
+		
+		String numTel="0200000000";
+
+		String afficherNumTel = readConsoleInput("^oui|non$", 
+				"Voulez vous afficher le numéro de téléphone dans l'annonce",
+				"Votre réponse", 
+				" être oui ou non");
+		if(afficherNumTel.equals("oui")){
+			numTel = readConsoleInput("^0\\S{9}$", 
+					"Entrez le numéro de téléphone à mettre dans les annonces",
+					"Votre réponse", 
+					"doit être une chaîne de 10 caractères sans espace commencant par 0");
+		}
+
+
+		manager.createAgentLbc(Integer.parseInt(nbAnnonces), afficherNumTel, numTel);
 		manager.createAddsGenerator();
-		boolean reglageParDefaut = useReglageByDefault();
-		selectionTitres(reglageParDefaut);
-		selectionTextes(reglageParDefaut);
-		selectionCommunes(reglageParDefaut);
-		selectionImages(reglageParDefaut);
+		selectionTitres();
+		selectionTextes();
+		selectionCommunes();
+		selectionImages();
 		System.out.println("Démarrage de la publication ...");
 		manager.genererEtPublier();
 
@@ -230,34 +291,22 @@ public class MoteurConsole {
 	}
 
 
-	private boolean useReglageByDefault() throws HomeException{
-		String rep = readConsoleInput("^oui|non$", 
-				"Voulez vous utiliser les réglages par défaut",
-				"Votre réponse", "être oui ou non");
-		if(rep.equals("oui")){
-			return true;
-		}else{
-			return false;
-		}
-
-	}
 
 
-	private void selectionImages(boolean selectionImages) throws HomeException{
-		String path = "MINE";
-		if(!selectionImages)
-			path = selectPath(" les images");
+	private void selectionImages() throws HomeException, MenuClientException {
+		String path;
+		path = selectPath(" les images");
 		manager.setPathToAdds(path);
 	}
 
 
-	private void selectionCommunes(boolean reglageParDefaut) throws HomeException{
+	private void selectionCommunes() throws HomeException, MenuClientException {
 		String renouvellez;
 		do{
-			String strTypeSource="SQL";
-			if(!reglageParDefaut){
-				strTypeSource = selectSource("communes");
-			}
+			String strTypeSource;
+
+			strTypeSource = selectSource("communes");
+
 			manager.setCommuneSourceType(strTypeSource);
 
 			switch (manager.getAddsGenerator().getTypeSourceCommunes()) {
@@ -285,7 +334,7 @@ public class MoteurConsole {
 	}
 
 
-	private void selectionCommuneSql() throws HomeException{
+	private void selectionCommuneSql() throws HomeException, MenuClientException {
 		String renouvellez;
 		int bornInf;
 		int bornSup ;
@@ -310,7 +359,7 @@ public class MoteurConsole {
 	}
 
 	// pour poser la question : quelle type de source à utiliser ?
-	private String selectSource(String objectRelated)throws HomeException{
+	private String selectSource(String objectRelated)throws HomeException, MenuClientException {
 		String renouvellez;
 		String strTypeSource;
 		do{
@@ -328,7 +377,7 @@ public class MoteurConsole {
 		return strTypeSource;
 	}
 
-	private String selectPath(String elementsAdds)throws HomeException{
+	private String selectPath(String elementsAdds)throws HomeException, MenuClientException {
 		String renouvellez;
 		String path;
 		do{
@@ -342,17 +391,17 @@ public class MoteurConsole {
 	}
 
 
-	private void selectionTextes(boolean reglageParDefaut) throws HomeException {
+	private void selectionTextes() throws HomeException, MenuClientException  {
 		String renouvellez;
 		do{
 			String strTypeSource="SQL";
-			if(!reglageParDefaut)
-				strTypeSource = selectSource("textes");
+
+			strTypeSource = selectSource("textes");
 			manager.setTexteSourceType(strTypeSource);
 
 			switch (manager.getAddsGenerator().getTypeSourceTextes()) {
 			case SQL:
-				selectionTexteSql(reglageParDefaut);
+				selectionTexteSql();
 				break;
 			case XLSX:
 				selectionTextesXlsx();	
@@ -369,32 +418,32 @@ public class MoteurConsole {
 	}
 
 
-	private void selectionTextesXlsx() throws HomeException{
+	private void selectionTextesXlsx() throws HomeException, MenuClientException {
 		String path = selectPath("les textes");
 		manager.setPathToAdds(path);	
 	}
 
 
-	private void selectionTexteSql(boolean reglageParDefaut) throws HomeException{
-		String typeTexteChoisie="mes200TextesSoutienParMailScolaireAvecResa10jours";
-		if(!reglageParDefaut)
-			typeTexteChoisie = printManager.chooseTypeTexte();
+	private void selectionTexteSql() throws HomeException, MenuClientException {
+		String typeTexteChoisie;
+
+		typeTexteChoisie = printManager.chooseTypeTexte();
 		manager.setCritSelectTexte(typeTexteChoisie);
 
 	}
 
 
-	private void selectionTitres(boolean reglageParDefaut) throws HomeException{
+	private void selectionTitres() throws HomeException, MenuClientException {
 		String renouvellez;
 		do{
-			String strTypeSource = "SQL";
-			if(!reglageParDefaut)
-				strTypeSource = selectSource("titres");
+			String strTypeSource;
+
+			strTypeSource = selectSource("titres");
 			manager.setTitleSourceType(strTypeSource);
 
 			switch (manager.getAddsGenerator().getTypeSourceTitles()) {
 			case SQL:
-				selectionTitresSql(reglageParDefaut);
+				selectionTitresSql();
 				break;
 			case XLSX:
 				selectionTitresXlsx();	
@@ -414,24 +463,22 @@ public class MoteurConsole {
 
 
 
-	private void selectionTitresXlsx() throws HomeException{
+	private void selectionTitresXlsx() throws HomeException, MenuClientException {
 		String path = selectPath("titres");
 		manager.setPathToAdds(path);
 	}
 
 
-	private void selectionTitresSql(boolean reglageParDefaut) throws HomeException{
-		String typeTitleChoisie = "sebScolaire122";
-		if(!reglageParDefaut)
-			typeTitleChoisie = printManager.chooseTypeTitle();
+	private void selectionTitresSql() throws HomeException, MenuClientException {
+		String typeTitleChoisie;
+
+		typeTitleChoisie = printManager.chooseTypeTitle();
 		manager.setCritSelectTitre(typeTitleChoisie);
 
 	}
 
 
-	private void choixDunCompte() throws HomeException{
-
-		manager.setComptes();
+	private void choixDunCompte() throws HomeException, MenuClientException {
 		String[] pourAffichageEtSaisieDesComptes = this.printManager.comptestoString();
 		String renouvellez;
 		String idCompte ;
@@ -455,7 +502,7 @@ public class MoteurConsole {
 
 
 	public String readConsoleInput(String regex, String message, String variableASaisir, String format)
-			throws HomeException {
+			throws HomeException, MenuClientException {
 		Pattern p = Pattern.compile(regex);
 		String phraseCloseApplication = "Voulez fermez l'application ? (si il y a un travail, il ne sera pas enregistré)";
 		boolean continueBoucle = true;
@@ -477,6 +524,8 @@ public class MoteurConsole {
 				break;
 			case "HOME":
 				throw new HomeException();
+			case "MENU CLIENT":
+				throw new MenuClientException();
 			default:
 				Matcher m = p.matcher(input);
 				boolean b = m.matches();
