@@ -25,7 +25,7 @@ public class MoteurConsole {
 	public static PrintStream ps;
 
 	public static void main(String[] args) {
-		File file = new File("test.log");
+		File file = new File("C:\\Users\\alexandre\\addPoster.log");
 		try{
 			ps = new PrintStream(file);
 		}catch(Exception excep){
@@ -179,6 +179,7 @@ public class MoteurConsole {
 		choixDunCompte();
 		printManager.menuGestionDesComptes();
 
+
 	}
 
 
@@ -259,8 +260,8 @@ public class MoteurConsole {
 				"Entrez le nb d'annonces à publier",
 				"Votre réponse", 
 				"doit être un entier positif");
-		
-		
+
+
 		String numTel="0200000000";
 
 		String afficherNumTel = readConsoleInput("^oui|non$", 

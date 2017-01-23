@@ -149,6 +149,9 @@ public class CompteLbc {
 	public boolean isDateDerniereActiviteReachTheLimit(){
 		Calendar dateLimite = Calendar.getInstance();
 		dateLimite.add(Calendar.DAY_OF_MONTH, -10);
+		if(this.dateDerniereActivite == null){
+			return true;
+		}
 		if(this.dateDerniereActivite.before(dateLimite)){
 			return true;
 		}else{
@@ -193,8 +196,4 @@ public class CompteLbc {
 	public void setRefClient(int refClient) {
 		this.refClient = refClient;
 	}	
-	
-	
-	
-	
 }
