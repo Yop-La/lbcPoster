@@ -124,9 +124,9 @@ public class ObjectManager {
 		agentLbc.goToFormDepot();
 		try{
 			addsPublieAvtMode = agentLbc.publish();
-			this.nbAddsPublie = this.nbAddsToPublish;
+			this.nbAddsPublie = this.nbAddsToPublish-agentLbc.getAddsWithCommuneNotRecognised().size();
 		}catch(AgentLbcFailPublicationException excep){
-			this.nbAddsPublie = excep.getIndiceAnnonceDechec()-1;
+			this.nbAddsPublie = excep.getIndiceAnnonceDechec();
 			addsPublieAvtMode = excep.getAddsToPublish();
 		}
 	}

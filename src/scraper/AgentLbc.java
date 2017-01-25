@@ -1,4 +1,5 @@
 package scraper;
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -7,11 +8,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -23,6 +27,8 @@ import exception.AddSumitException;
 import exception.AgentLbcFailPublicationException;
 import exception.EchecSoumissionException;
 import exception.NoAddsOnlineException;
+import exception.NotRecognizedCommuneException;
+import ihm.MoteurConsole;
 
 
 public class AgentLbc{
@@ -31,6 +37,7 @@ public class AgentLbc{
 	private WebDriver driver;
 	private List<Add> addsToPublish;
 	private List<Add> addsControled;
+	private List<Add> addsWithCommuneNotRecognised = new ArrayList<Add>();
 	private List<Add> beforeModeration = new ArrayList<Add>();
 	private boolean saveAddToSubmitLbcInBase;
 	JavascriptExecutor jse;
@@ -125,7 +132,9 @@ public class AgentLbc{
 		for(Add addInPublication : addsToPublish){
 			System.out.println("Annonce "+(indexAddPublication+1)+" en cours de publication");
 			boolean formulaireSoumis=false;
+			boolean cantSumitCommune =false;
 			while(!formulaireSoumis){
+				cantSumitCommune =false;
 				try{ 
 					publishOneAdd(addInPublication);
 					formulaireSoumis=true;
@@ -142,15 +151,33 @@ public class AgentLbc{
 						System.out.println("Annonce bien soumise mais parvient pas à cliquer sur dépôt annonce");
 						formulaireSoumis=true;
 						driver.findElement(By.cssSelector(".headerNav_main > li:nth-child(2) > a:nth-child(1)")).click();
+					}else if(excep  instanceof NotRecognizedCommuneException){
+						System.out.println("Cette commune n'est pas reconnue par lbc -> on passe donc à la suivante");
+						addsWithCommuneNotRecognised.add(addInPublication);
+						cantSumitCommune = true;
+					}else{
+						System.out.println("Plantage du posteur d'annonces");
+						System.out.println("Screen shot et exception  enregistré dans c:\\tmp");
+						File scrFile = ((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
+						// Now you can do whatever you need to do with it, for example copy somewhere
+						try{
+							FileUtils.copyFile(scrFile, new File("c:\\tmp\\planteposter.png"));
+						}catch(Exception exe){
+							System.out.println("Impossible de sauvegarder le screen shot");
+						}
+						excep.printStackTrace(MoteurConsole.ps);
+						throw new AgentLbcFailPublicationException(indexAddPublication, addsToPublish);
 					}
 				} 
 			}
-			this.beforeModeration.add(addInPublication);
 			indexAddPublication++;
-			if(saveAddToSubmitLbcInBase){
-				addInPublication.setCompteLbc(this.compteLBC);
-				addInPublication.setEtat(EtatAdd.enAttenteModeration);
-				addDao.save(addInPublication,false);
+			if(!cantSumitCommune){
+				this.beforeModeration.add(addInPublication);
+				if(saveAddToSubmitLbcInBase){
+					addInPublication.setCompteLbc(this.compteLBC);
+					addInPublication.setEtat(EtatAdd.enAttenteModeration);
+					addDao.save(addInPublication,false);
+				}
 			}
 		}
 		System.out.println("-- Publication terminé --");
@@ -181,12 +208,17 @@ public class AgentLbc{
 		// saisie du lieu
 		wait(500);
 		boolean saisieCommuneFaite = false;
+		int nbTentativeSoumission = 0;
 		while(!saisieCommuneFaite){
 			try {
 				saisirCommune(addInPublication);
 				saisieCommuneFaite = true;
 			} catch (org.openqa.selenium.NoSuchElementException exec) {
 				saisieCommuneFaite = false;
+				nbTentativeSoumission++;
+				if(nbTentativeSoumission==4){
+					throw new NotRecognizedCommuneException();
+				}
 			}
 		}
 
@@ -416,6 +448,10 @@ public class AgentLbc{
 
 	public List<Add> getBeforeModeration() {
 		return beforeModeration;
+	}
+	
+	public List<Add> getAddsWithCommuneNotRecognised() {
+		return addsWithCommuneNotRecognised;
 	}
 
 

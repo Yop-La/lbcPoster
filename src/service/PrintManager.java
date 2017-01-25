@@ -241,6 +241,14 @@ public class PrintManager extends JPanel{
 		}else{
 			System.out.println("La publication s'est terminé prématurément à cause d'une erreur : "
 					+objectManager.getNbAddsPublie()+ " annonces publiées");
+			if(objectManager.getAgentLbc().getAddsWithCommuneNotRecognised().size()==0){
+				System.out.println("Il n'y a pas eu de communes non reconnues");
+			}else{
+				System.out.println("Les communes non reconnues sont : ");
+				for(Add add : objectManager.getAgentLbc().getAddsWithCommuneNotRecognised()){
+					System.out.println(add.getCommuneLink().submit);
+				}
+			}
 		}
 	}
 

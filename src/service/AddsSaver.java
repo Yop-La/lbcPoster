@@ -7,9 +7,7 @@ import dao.AddDao;
 import dao.CommuneDao;
 import dao.TexteDao;
 import dao.TitreDao;
-import exception.MultipleCorrespondanceAddException;
 import scraper.Add;
-import scraper.Commune;
 import scraper.CommuneLink;
 import scraper.CompteLbc;
 import scraper.EtatAdd;
@@ -20,7 +18,6 @@ import scraper.Title;
 public class AddsSaver {
 	private List<Add> addsToControle;
 	private List<Add> addsReadyToSave = new ArrayList<Add>();
-	private CommuneDao communeDao;
 	private TitreDao titreDao;
 	private TexteDao texteDao;
 	private AddDao addDao;
@@ -45,7 +42,6 @@ public class AddsSaver {
 	public AddsSaver(List<Add> addsControled, CompteLbc compteLbc) {
 		super();
 		this.addsToControle = addsControled;
-		communeDao = new CommuneDao();
 		titreDao = new TitreDao();
 		texteDao = new TexteDao();
 		this.compteLbc = compteLbc;
@@ -188,7 +184,7 @@ public class AddsSaver {
 					int levelCorresp = texteLbc.getLevelCorrespondance();
 					int nbCorrespon = textesCorrespondant.size();
 					if(nbCorrespon==0){
-						texteLbc.setLevelCorrespondance(levelCorresp+1);
+						texteLbc.setLevelCorrespondance(levelCorresp-1);
 						System.out.println("Pas de correspondance de texte à la recherche n°"+nbRecherche);
 					}else if(nbCorrespon>=2){
 						texteFrBdd = textesCorrespondant.get(0);
