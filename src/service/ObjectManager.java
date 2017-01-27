@@ -13,6 +13,7 @@ import dao.CompteLbcDao;
 import exception.AgentLbcFailPublicationException;
 import exception.NoAddsOnlineException;
 import scraper.Add;
+import scraper.AddCategory;
 import scraper.AddsGenerator;
 import scraper.AgentLbc;
 import scraper.Client;
@@ -193,7 +194,7 @@ public class ObjectManager {
 		this.nbAddsToPublish = nbAddsToPublish;
 	}
 
-	public void createAgentLbc(int nbAddsToPublish, String afficherNumTel, String numTel){
+	public void createAgentLbc(int nbAddsToPublish, String afficherNumTel, String numTel, String category){
 		boolean numTelOnAdds = false;
 		if(afficherNumTel.equals("oui")){
 			numTelOnAdds=true;
@@ -208,6 +209,7 @@ public class ObjectManager {
 		paras.setAfficherNum(numTelOnAdds);
 		paras.setNbDannoncesAPublier(nbAddsToPublish);
 		paras.setNumTelephone(numTel);
+		paras.setAddCategory(AddCategory.valueOf(category));
 		agentLbc = new AgentLbc(compteInUse, saveAddToSubmitLbcInBase, paras);
 		setNbAddsToPublish(nbAddsToPublish);
 	}

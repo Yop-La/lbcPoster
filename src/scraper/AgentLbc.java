@@ -32,7 +32,7 @@ import ihm.MoteurConsole;
 
 
 public class AgentLbc{
-
+	private static int waitingTime = 1000;
 	private CompteLbc compteLBC;
 	private WebDriver driver;
 	private List<Add> addsToPublish;
@@ -40,8 +40,7 @@ public class AgentLbc{
 	private List<Add> addsWithCommuneNotRecognised = new ArrayList<Add>();
 	private List<Add> beforeModeration = new ArrayList<Add>();
 	private boolean saveAddToSubmitLbcInBase;
-	JavascriptExecutor jse;
-	ParametresPublication paras;
+	public ParametresPublication paras;
 
 
 	// constructeur pour publier des annonces à partir fichiers CSV
@@ -85,7 +84,6 @@ public class AgentLbc{
 	public void setUp(){
 		try{
 			driver = new FirefoxDriver();
-			jse = (JavascriptExecutor)driver;
 			driver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
 			driver.manage().timeouts().pageLoadTimeout(50, TimeUnit.SECONDS);
 		}catch(Exception excep){
@@ -161,7 +159,7 @@ public class AgentLbc{
 						File scrFile = ((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
 						// Now you can do whatever you need to do with it, for example copy somewhere
 						try{
-							FileUtils.copyFile(scrFile, new File("c:\\tmp\\planteposter.png"));
+							FileUtils.copyFile(scrFile, new File("C:\\temp\\planteposter.png"));
 						}catch(Exception exe){
 							System.out.println("Impossible de sauvegarder le screen shot");
 						}
@@ -187,26 +185,26 @@ public class AgentLbc{
 
 	private void publishOneAdd(Add addInPublication) throws Exception{
 
-		wait(500);
+		wait(waitingTime);
 		clearForm();
 
 		// sélection de la catégorie
-		new Select(driver.findElement(By.id("category"))).selectByVisibleText("Cours particuliers");
+		new Select(driver.findElement(By.id("category"))).selectByVisibleText(paras.getAddCategory().getCategory());
 
 		// saisie du titre
 		driver.findElement(By.id("subject")).click();
-		wait(500);
+		wait(waitingTime);
 		driver.findElement(By.id("subject")).sendKeys(addInPublication.getTitle().getTitre());
 		// saisie du texte
 		driver.findElement(By.id("subject")).click();
-		wait(500);
+		wait(waitingTime);
 		setValue(driver.findElement(By.id("body")), addInPublication.getTexte().getCorpsTexteForPublication());
 
 		// saisie de l'image
-		wait(500);
+		wait(waitingTime);
 		driver.findElement(By.id("image0")).sendKeys(addInPublication.getImage().getAbsolutePath());
 		// saisie du lieu
-		wait(500);
+		wait(waitingTime);
 		boolean saisieCommuneFaite = false;
 		int nbTentativeSoumission = 0;
 		while(!saisieCommuneFaite){
@@ -223,7 +221,7 @@ public class AgentLbc{
 		}
 
 
-		wait(500);
+		wait(waitingTime);
 		driver.findElement(By.id("phone")).clear();
 		driver.findElement(By.id("phone")).sendKeys(paras.getNumTelephone());
 		if(!paras.isAfficherNum()){
@@ -233,15 +231,15 @@ public class AgentLbc{
 		}
 
 		// soumission de l'annonce pour vérification
-		wait(500);
+		wait(waitingTime);
 		driver.findElement(By.id("newadSubmit")).click();
-		wait(500);
+		wait(waitingTime);
 
 		// check pour vérification visuelle (à revoir)
 		do{
 			driver.findElement(By.cssSelector("h2.title.toggleElement")).click();// pour controler qu'on est sur la bonne page
 		}while(!driver.findElement(By.cssSelector("h2.title.toggleElement")).getAttribute("class").equals("title toggleElement active"));
-		wait(500);
+		wait(waitingTime);
 		do{
 			driver.findElement(By.id("accept_rule")).click();
 		}while(!driver.findElement(By.id("accept_rule")).isSelected());
@@ -252,9 +250,8 @@ public class AgentLbc{
 		driver.findElement(By.id("lbc_submit")).click();
 		System.out.println("Annonce définitivement soumise");
 		// retour à la page de dépôt des annonces
-		wait(500);
+		wait(5000);
 		driver.findElement(By.cssSelector("a.button-blue:nth-child(2)")).click();
-		driver.findElement(By.cssSelector(".headerNav_main > li:nth-child(2) > a:nth-child(1)")).click();
 
 		try{
 			driver.findElement(By.id("subject"));
@@ -286,13 +283,13 @@ public class AgentLbc{
 		driver.findElement(By.id("location_p")).sendKeys(communeSubmited);
 
 		driver.findElement(By.id("location_p")).sendKeys(Keys.LEFT);
-		wait(500);
+		wait(waitingTime);
 		driver.findElement(By.id("location_p")).sendKeys(Keys.LEFT);
-		wait(500);
+		wait(waitingTime);
 		driver.findElement(By.id("location_p")).sendKeys(Keys.RIGHT);
-		wait(500);
+		wait(waitingTime);
 		driver.findElement(By.id("location_p")).sendKeys(Keys.RIGHT);
-		wait(500);
+		wait(waitingTime);
 		driver.findElement(By.id("location_p")).sendKeys(Keys.ENTER);
 		driver.findElement(By.cssSelector("#map_newad > div.layout:not(.hidden)"));
 		driver.findElement(By.cssSelector("#map_newad > div.layout.hidden"));

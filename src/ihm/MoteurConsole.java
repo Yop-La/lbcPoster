@@ -25,7 +25,7 @@ public class MoteurConsole {
 	public static PrintStream ps;
 
 	public static void main(String[] args) {
-		File file = new File("c:\\tmp\\addPoster.log");
+		File file = new File("C:\\temp\\addPoster.log");
 		try{
 			ps = new PrintStream(file);
 		}catch(Exception excep){
@@ -275,8 +275,13 @@ public class MoteurConsole {
 					"doit être une chaîne de 10 caractères sans espace commencant par 0");
 		}
 
+		String category = readConsoleInput("^CoursParticuliers|Prestations$", 
+				"Sélectionner la catégorie à utiliser (Prestations ou CoursParticuliers)",
+				"Votre réponse", 
+				"être Prestations ou CoursParticuliers");
 
-		manager.createAgentLbc(Integer.parseInt(nbAnnonces), afficherNumTel, numTel);
+
+		manager.createAgentLbc(Integer.parseInt(nbAnnonces), afficherNumTel, numTel, category);
 		manager.createAddsGenerator();
 		selectionTitres();
 		selectionTextes();
