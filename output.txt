@@ -1,0 +1,8 @@
+salut
+salut
+fz
+salut
+String index out of range: 2
+java.lang.StringIndexOutOfBoundsException: String index out of range: 2
+java.lang.String.substring(Unknown Source)
+ihm.MoteurConsole.main(MoteurConsole.java:48)
