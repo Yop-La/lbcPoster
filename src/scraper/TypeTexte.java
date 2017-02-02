@@ -6,5 +6,7 @@ public enum TypeTexte {
 	mes200TextesSoutienParMailScolaireAvecResa,
 	mes200TextesSoutienParMailScolaireSansResa1mois,
 	textesSeb200,
-	elisabeth150TextesPourVenteMethodeBacMail;
+	elisabeth150TextesPourVenteMethodeBacMail,
+	centTexteMartinSiteWeb,
+	unTexteMartinSiteWeb;
 }

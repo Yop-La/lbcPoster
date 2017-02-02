@@ -91,6 +91,8 @@ public class MoteurConsole {
 				else if(excep instanceof MenuClientException)
 					System.out.println("Vous ne pouvez pas vous rendre dans le menu client \n"
 							+ "Il faut d'abord en avoir choisi un !");
+				else
+					excep.printStackTrace();
 				continueBoucle = true;
 			}
 		}
@@ -387,8 +389,8 @@ public class MoteurConsole {
 		String renouvellez;
 		String path;
 		do{
-			path = readConsoleInput("^MINE$|CLIENT", "Saisir le répertoire des annonces à utiliser pour les "+elementsAdds,
-					"Votre réponse", "doit être MINE ou CLIENT");
+			path = readConsoleInput("^MINE$|CLIENT|MARTIN", "Saisir le répertoire des annonces à utiliser pour les "+elementsAdds,
+					"Votre réponse", "doit être MINE ou CLIENT ou MARTIN");
 			renouvellez = readConsoleInput("^oui|non", "Est ce bien ce répertoire : "+ path +""
 					+ " que vous voulez utiliser ? ",
 					"Votre réponse", "doit être oui ou non");

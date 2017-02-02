@@ -2,6 +2,8 @@ package service;
 
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.ThreadLocalRandom;
@@ -42,7 +44,7 @@ public class ObjectManager {
 	private AddsGenerator addsGenerator;
 	private AddsSaver addsSaver;
 
-	private List<CompteLbc> comptes;
+	private HashMap<Integer, CompteLbc> comptes;
 	private CompteLbc compteInUse;
 
 	private List<Title> titleSource;
@@ -84,7 +86,11 @@ public class ObjectManager {
 			this.addsFromLbc = agentLbc.scanAddsOnLbc();
 		}catch(NoAddsOnlineException excep){
 			AddDao addDao = new AddDao();
+			CompteLbcDao compteLbcDao = new CompteLbcDao();
+			System.out.println("Le compte en utilisation est : "+compteInUse.getRefCompte());
+			compteLbcDao.updateDateDernierControl(compteInUse);
 			excep.setStatsOnAdds(addDao.putAllsAddsNotOnline(compteInUse));
+			
 			throw excep;
 		}
 		
@@ -170,12 +176,7 @@ public class ObjectManager {
 	}
 
 	public void setCompte(int identifiant){
-		for(CompteLbc compte : comptes){
-			if(compte.getRefCompte() == identifiant){
-				compteInUse = compte;
-				return;
-			}
-		}
+				compteInUse = comptes.get(identifiant);
 	}
 
 
@@ -222,11 +223,9 @@ public class ObjectManager {
 		return compteInUse;
 	}
 
-	public List<CompteLbc> getComptes() {
+	public HashMap<Integer, CompteLbc> getComptes() {
 		return comptes;
 	}
-
-	
 
 	public void setTitleSourceType(String titleSourceType) {
 		addsGenerator.setTypeSourceTitles(Source.valueOf(titleSourceType));
@@ -300,11 +299,6 @@ public class ObjectManager {
 
 	public void setPathToAdds(PathToAdds pathToAdds) {
 		this.pathToAdds = pathToAdds;
-	}
-
-
-	public void setComptes(List<CompteLbc> comptes) {
-		this.comptes = comptes;
 	}
 
 	public void setCompteInUse(CompteLbc compteInUse) {

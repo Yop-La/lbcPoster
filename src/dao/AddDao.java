@@ -15,8 +15,11 @@ import ihm.MoteurConsole;
 import scraper.Add;
 import scraper.Client;
 import scraper.Commune;
+import scraper.CommuneLink;
 import scraper.CompteLbc;
 import scraper.EtatAdd;
+import scraper.Texte;
+import scraper.Title;
 
 public class AddDao extends JdbcRepository<Add, Integer> {
 
@@ -24,6 +27,67 @@ public class AddDao extends JdbcRepository<Add, Integer> {
 	public List<Add> findAll() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public List<Add> findAll(Client clientInUse){
+		List<Add> retour = new ArrayList<Add>();
+		try(Connection maConnection = getConnection()){	
+			try(PreparedStatement statement = 
+					maConnection.prepareStatement("SELECT "
+							+ "ref_add, "
+							+ "nb_vues, "
+							+ "nb_clic_tel, "
+							+ "nb_mails, "
+							+ "date_mise_en_ligne, "
+							+ "nb_jours_restants, "
+							+ "ref_commune, "
+							+ "ref_titre, "
+							+ "ref_compte, "
+							+ "ref_texte, "
+							+ "nb_controls, "
+							+ "date_controle, "
+							+ "etat "
+									+" FROM public.adds_lbc "
+										+ " where etat='onLine' and "
+										+ " ref_compte in (select ref_compte from compte_lbc where ref_client = ?)")){
+				statement.setInt(1, clientInUse.getRefClient());
+				ResultSet rs = statement.executeQuery();
+				while(rs.next()){
+					Add add = new Add();
+					add.setRefAdd(rs.getInt(1));
+					add.setNbVues(rs.getInt(2));
+					add.setNbClickTel(rs.getInt(3));
+					add.setNbMailsRecus(rs.getInt(4));
+					Calendar dateMiseEnLigne = Calendar.getInstance();
+					dateMiseEnLigne.setTime(rs.getDate(5));
+					add.setDateMiseEnLigne(dateMiseEnLigne);
+					add.setNbJoursRestants(rs.getInt(6));
+					CommuneLink communeLink = new CommuneLink();
+					communeLink.onLine = new Commune();
+					communeLink.onLine.setRefCommune(rs.getInt(7));
+					add.setCommuneLink(communeLink);
+					Title titre = new Title();
+					titre.setRefTitre(rs.getInt(8));
+					add.setTitle(titre);
+					CompteLbc compteLbc = new CompteLbc();
+					compteLbc.setRefCompte(rs.getInt(9));
+					add.setCompteLbc(compteLbc);
+					Texte texte = new Texte();
+					texte.setRefTexte(rs.getInt(10));
+					add.setTexte(texte);
+					add.setNbControle(rs.getInt(11));
+					Calendar dateControl = Calendar.getInstance();
+					dateControl.setTime(rs.getTime(12));
+					add.setDateControl(dateControl);
+					add.setEtat(EtatAdd.valueOf(rs.getString(13)));
+					retour.add(add);
+				}
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+			e.printStackTrace(MoteurConsole.ps);
+		}
+		return retour;
 	}
 
 	// pour sauvegarder les annonce soumises au bon coin et celles en ligne sur le bon coin

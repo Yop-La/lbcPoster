@@ -6,6 +6,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 import scraper.Client;
@@ -37,7 +39,7 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 					statemennt.setInt(3, entity.getRefClient());
 					statemennt.executeUpdate();
 					ResultSet rs = statemennt.getGeneratedKeys();
-					if (rs.next()) {
+					if (rs.next()){
 						int ref_compte = rs.getInt(1);
 						entity.setRefCompte(ref_compte);
 					}
@@ -128,6 +130,22 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 		}
 	}
 
+	public void updateDateDernierControl(CompteLbc compteInUse) {
+		try(Connection maConnection = getConnection()){
+			try(PreparedStatement statement = 
+					maConnection.prepareStatement("update compte_lbc "
+							+ " set date_dernier_control = ?"
+							+ " where ref_compte = ?")){
+				Date today = new Date();
+				statement.setDate(1, new java.sql.Date(today.getTime()));
+				statement.setInt(2, compteInUse.getRefCompte());
+				statement.executeUpdate();
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
+	}
+
 	public void updateRedirection(CompteLbc compteInUse) {
 		try(Connection maConnection = getConnection()){
 			try(PreparedStatement statement = 
@@ -141,7 +159,7 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 		}catch(SQLException e){
 			e.printStackTrace();
 		}
-		
+
 	}
 
 	public void updateEnabled(CompteLbc compteInUse) {
@@ -159,11 +177,11 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 		}catch(SQLException e){
 			e.printStackTrace();
 		}
-		
+
 	}
 
-	public List<CompteLbc> findAll(Client clientInUse) {
-		List<CompteLbc> retour = new ArrayList<CompteLbc>();
+	public HashMap<Integer, CompteLbc> findAll(Client clientInUse) {
+		HashMap<Integer, CompteLbc> retour = new HashMap<Integer, CompteLbc>();
 		try(Connection maConnection = getConnection()){
 			ArrayList<Integer> refs_compte = new ArrayList<Integer>();
 			// on sélectionne toutes les ref_comptes
@@ -193,6 +211,7 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 				}
 				// pour récupérer la date de dernier contrôle
 				java.sql.Date dateLastControl = null;
+				java.sql.Date dateLastControlBis = null;
 				try(PreparedStatement statement = 
 						maConnection.prepareStatement("SELECT max(date_controle) from adds_lbc "
 								+ " where ref_compte = ?")){
@@ -203,6 +222,29 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 						}
 					}
 				}
+
+				try(PreparedStatement statement = 
+						maConnection.prepareStatement("SELECT date_dernier_control from compte_lbc"
+								+ " where ref_compte = ?")){
+					statement.setInt(1, ref_compte);
+					try(ResultSet results = statement.executeQuery()){
+						if(results.next()){
+							dateLastControlBis = results.getDate(1);
+						}
+					}
+				}
+				if(dateLastControl == null){
+					dateLastControl=dateLastControlBis;
+				}else{
+					if(dateLastControlBis!=null){
+						if(dateLastControlBis.getTime()>=dateLastControl.getTime()){
+							dateLastControl=dateLastControlBis;
+						}
+					}
+				}
+
+
+
 				// pour récupérer la date de péremption
 				java.sql.Date lessRecentDateOfMiseEnLigne = null;
 				try(PreparedStatement statement = 
@@ -250,7 +292,7 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 							+ "date_dernier_control, "
 							+ "nb_annonces_online, "
 							+ "password, "
-							+ "pseudo , "
+							+ "pseudo, "
 							+ "redirection, "
 							+ "date_derniere_activite, "
 							+ "date_avant_peremption,  "
@@ -258,7 +300,7 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 							+ "date_of_disabling,  "
 							+ "ref_client  "
 							+ "from compte_lbc "
-								+ " where ref_client = ?")){
+							+ " where ref_client = ?")){
 				statement.setInt(1, clientInUse.getRefClient());
 				try(ResultSet results = statement.executeQuery()){
 					while(results.next()){
@@ -289,14 +331,14 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 							compteLbc.setDateAvantPeremption(dateAvantPeremption);
 						}
 						compteLbc.setDisabled(results.getBoolean(10));
-						
+
 						Calendar dateOfDisabling = Calendar.getInstance();
 						if(results.getDate(11)!=null){
 							dateOfDisabling.setTime(results.getDate(11));
 							compteLbc.setDateOfDisabling(dateOfDisabling);
 						}
 						compteLbc.setRefClient(clientInUse.getRefClient());
-						retour.add(compteLbc);
+						retour.put(compteLbc.getRefCompte(),compteLbc);
 					}
 				}
 			}

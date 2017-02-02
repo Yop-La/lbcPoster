@@ -3,6 +3,7 @@ package service;
 import java.io.File;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,7 +27,9 @@ import scraper.CompteLbc;
 import scraper.OperationToSolveMatching;
 import scraper.ResultsControl;
 import scraper.Source;
+import scraper.StatsOnAdds;
 import scraper.StatsOnCommune;
+import scraper.StatsOnCompte;
 import scraper.Texte;
 import scraper.TexteAndTitleManager;
 import scraper.Title;
@@ -753,7 +756,7 @@ public class PrintManager extends JPanel{
 
 
 	public void printComptes() {
-		for(CompteLbc compteLbc : objectManager.getComptes()){
+		for(CompteLbc compteLbc : objectManager.getComptes().values()){
 			printCompte(compteLbc, false);
 		}
 	}
@@ -1030,7 +1033,7 @@ public class PrintManager extends JPanel{
 				disableOrEnable();
 				break;
 			case "5":
-				throw new HomeException();
+				throw new MenuClientException();
 			default:
 				System.out.println("Erreur de saisie");
 				break;
@@ -1101,9 +1104,10 @@ public class PrintManager extends JPanel{
 			System.out.println("---------- RESUME DES ANNONCES -----------");
 			System.out.println();
 			System.out.println("1 : Afficher le nombre de communes différentes avec des annonces.");
-			System.out.println("2 : Revenir au menu d'acceuil");
+			System.out.println("2 : Afficher stats par jour des annonces en ligne.");
+			System.out.println("3 : Revenir au menu d'acceuil");
 			System.out.println();
-			String saisie = readConsoleInput("^1|2$",
+			String saisie = readConsoleInput("^1|2|3$",
 					"Que voulez vous faire ? ",
 					"Votre réponse", " être 1 ou 2");
 			// Enregistrement du choix de l'utilisateur dans numéro
@@ -1113,13 +1117,34 @@ public class PrintManager extends JPanel{
 				printNonUnicityOfCommunes();
 				break;
 			case "2":
-				throw new HomeException();
+				printStatByDayOfOnlineAdds();
+				break;
+			case "3":
+				throw new MenuClientException();
 			default:
 				System.out.println("Erreur de saisie");
 				break;
 			}
 		}
 
+	}
+
+	private void printStatByDayOfOnlineAdds() {
+		StatsOnAdds statsOnAdds = new StatsOnAdds(objectManager.getClientInUse());
+		System.out.println(" Stats moyenne par jours et par adds des adds en ligne : ");
+		for(Map.Entry<Integer, StatsOnCompte> entry : statsOnAdds.getStatsOnClientAddsOnline().entrySet()) {
+		    int refCompte = entry.getKey();
+		    StatsOnCompte statsOnCompte = entry.getValue();
+		    CompteLbc compte = objectManager.getComptes().get(refCompte);
+		    System.out.println("Stats du compte "+compte.getMail()+" : ");
+		    System.out.println("Nb d'annonces online : "+statsOnCompte.getNbAddsOnline());
+		    System.out.println("Nb jours moyens online par add : "+statsOnCompte.getNbJourMoyenOnline());
+		    System.out.println("Nb clic totales : "+statsOnCompte.getNbTotaleClickOnline());
+		    System.out.println("Nb mails totales : "+statsOnCompte.getNbTotaleMailOnline());
+		    System.out.println("Pop moyenne des annonces en ligne : "+statsOnCompte.getPopMoyenneAddOnline());
+		    System.out.println("Nb vues moyen par jour et par add pour 100 add : "+statsOnCompte.getNbVuesMoyenParJourOnline());
+		    System.out.println();
+		}
 	}
 
 	private void printNonUnicityOfCommunes() {

@@ -10,6 +10,7 @@ public class Add {
 	private CommuneLink communeLink=new CommuneLink();
 	private File image;
 	private Calendar dateMiseEnLigne;
+	private Calendar dateControl;
 	private int nbJoursRestants;
 	private int nbVues;
 	private int nbMailsRecus;
@@ -155,6 +156,14 @@ public class Add {
 
 	public void setAddNotReferenced(boolean addNotReferenced) {
 		this.addWithNotReferenced = addNotReferenced;
+	}
+
+	public Calendar getDateControl() {
+		return dateControl;
+	}
+
+	public void setDateControl(Calendar dateControl) {
+		this.dateControl = dateControl;
 	}
 	
 	

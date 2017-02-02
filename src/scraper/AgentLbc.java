@@ -88,6 +88,7 @@ public class AgentLbc{
 			driver.manage().timeouts().pageLoadTimeout(50, TimeUnit.SECONDS);
 		}catch(Exception excep){
 			System.out.println("Problème au moment du setup");
+			excep.printStackTrace();
 		}
 	}
 
