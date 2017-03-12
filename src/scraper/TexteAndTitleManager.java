@@ -112,6 +112,23 @@ public class TexteAndTitleManager {
 
 
 	}
+	
+	public List<List<String>> generateTextOnlyWithSymbole(List<List<String>> textes, int nbTextesToGenerate) {
+		List<List<String>> retour = new ArrayList<List<String>>();
+		int nbTextesSource = textes.size();
+		for(int i=0;i<nbTextesToGenerate;i++){
+			String textesWithSymbole = textes.get(i%nbTextesSource).get(0);
+			String lineSymbole = generateLineSymboles();
+			textesWithSymbole=lineSymbole+"\n\n"+textesWithSymbole+"\n\n"+lineSymbole;
+			System.out.println("texte n°"+i+1);
+			System.out.println(textesWithSymbole);
+			System.out.println();
+			List<String> textesToSave = new ArrayList<String>();
+			textesToSave.add(textesWithSymbole);
+			retour.add(textesToSave);
+		}
+		return retour;
+	}
 
 	private String generateTexte(List<List<String>> textes) {
 		String texteGenerated="";

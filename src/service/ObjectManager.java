@@ -226,6 +226,10 @@ public class ObjectManager {
 	public HashMap<Integer, CompteLbc> getComptes() {
 		return comptes;
 	}
+	
+	public List<CompteLbc> getValuesComptes() {
+		return new ArrayList<CompteLbc>(comptes.values());
+	}
 
 	public void setTitleSourceType(String titleSourceType) {
 		addsGenerator.setTypeSourceTitles(Source.valueOf(titleSourceType));

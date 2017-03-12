@@ -8,5 +8,7 @@ public enum TypeTexte {
 	textesSeb200,
 	elisabeth150TextesPourVenteMethodeBacMail,
 	centTexteMartinSiteWeb,
-	unTexteMartinSiteWeb;
+	unTexteMartinSiteWeb,
+	maud100TextesFrancais,
+	unTexteSoutienMailCourtAvecResa10jours;
 }

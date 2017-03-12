@@ -62,7 +62,7 @@ public class PrintManager extends JPanel{
 		String controleSaisie = "";
 
 		for(int i=0; i<objectManager.getComptes().size(); i++){
-			CompteLbc compte = objectManager.getComptes().get(i);
+			CompteLbc compte = objectManager.getValuesComptes().get(i);
 			if(i==0){
 				affichage = compte.getRefCompte()+" : "+compte.getMail();
 				controleSaisie = "^"+compte.getRefCompte();
@@ -1225,15 +1225,15 @@ public class PrintManager extends JPanel{
 
 	private void addNewTextInBdd() throws HomeException, MenuClientException{
 		System.out.println("------    AJOUT DE TEXTES À LA BDD   ------");
-		String choix = readConsoleInput("^generer|ajouter$",
-				"Voulez vous générer puis ajouter des textes ou juste ajouter des textes ? ",
-				"Votre réponse", " être generer ou ajouter");
+		String choix = readConsoleInput("^generer|ajouter|ajouter avec symboles$",
+				"Voulez vous générer puis ajouter des textes ou juste ajouter des textes ou compléter avec des symboles ? ",
+				"Votre réponse", " être generer ou ajouter ou ajouter avec symboles ou ajouter avec symboles");
 		System.out.println("Sélectionnez le fichier xlsx des textes");
 		File path = selectFileWithTexte();
 		TexteAndTitleManager texteManager = new TexteAndTitleManager();
 		List<List<String>> textes=null;
+		textes = texteManager.getContenuXlsx(path);
 		if(choix.equals("generer")){
-			textes = texteManager.getContenuXlsx(path);
 			String nbTextesToGenerate = readConsoleInput("^\\d+$",
 					"Saisir le nombre de textes à générer",
 					"Votre réponse", " être un entier");
@@ -1245,8 +1245,14 @@ public class PrintManager extends JPanel{
 						"Votre réponse", " être oui ou non");
 			}while(confirmation.equals("non"));
 		}else if(choix.equals("ajouter")){
-			textes = texteManager.getContenuXlsx(path);
-		}	
+			
+		}else if(choix.equals("ajouter avec symboles")){
+			String nbTextesToGenerate = readConsoleInput("^\\d+$",
+					"Saisir le nombre de textes à générer",
+					"Votre réponse", " être un entier");
+			textes = texteManager.generateTextOnlyWithSymbole(textes, Integer.parseInt(nbTextesToGenerate));
+		}
+		
 		String typeTexte = readConsoleInput("^\\S{3,}$",
 				"Saisir le type de texte à ajouter",
 				"Votre réponse", " faire au moins 3 caractères sans espace");

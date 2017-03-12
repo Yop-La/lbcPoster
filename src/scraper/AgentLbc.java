@@ -131,13 +131,14 @@ public class AgentLbc{
 		for(Add addInPublication : addsToPublish){
 			System.out.println("Annonce "+(indexAddPublication+1)+" en cours de publication");
 			boolean formulaireSoumis=false;
-			boolean cantSumitCommune =false;
+			boolean communeUnknowByLbc =false;
 			while(!formulaireSoumis){
-				cantSumitCommune =false;
+				communeUnknowByLbc =false;
 				try{ 
 					publishOneAdd(addInPublication);
 					formulaireSoumis=true;
 				}catch(Exception excep){
+					communeUnknowByLbc =false;
 					if(excep instanceof EchecSoumissionException | excep instanceof org.openqa.selenium.NoSuchElementException){
 						System.out.println("erreur au moment de la publication de n°"+indexAddPublication);
 						System.out.println("Relancement de la publication");
@@ -153,7 +154,8 @@ public class AgentLbc{
 					}else if(excep  instanceof NotRecognizedCommuneException){
 						System.out.println("Cette commune n'est pas reconnue par lbc -> on passe donc à la suivante");
 						addsWithCommuneNotRecognised.add(addInPublication);
-						cantSumitCommune = true;
+						communeUnknowByLbc = true;
+						formulaireSoumis=true;
 					}else{
 						System.out.println("Plantage du posteur d'annonces");
 						System.out.println("Screen shot et exception  enregistré dans c:\\tmp");
@@ -170,13 +172,15 @@ public class AgentLbc{
 				} 
 			}
 			indexAddPublication++;
-			if(!cantSumitCommune){
+			if(!communeUnknowByLbc){
 				this.beforeModeration.add(addInPublication);
 				if(saveAddToSubmitLbcInBase){
 					addInPublication.setCompteLbc(this.compteLBC);
 					addInPublication.setEtat(EtatAdd.enAttenteModeration);
 					addDao.save(addInPublication,false);
 				}
+			}else{
+				
 			}
 		}
 		System.out.println("-- Publication terminé --");
