@@ -3,7 +3,9 @@ package ihm;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -122,10 +124,11 @@ public class MoteurConsole {
 			System.out.println("1 : Publier des annonces");
 			System.out.println("2 : Ajouter un nouveau compte LBC");
 			System.out.println("3 : Controler un compte LBC");
-			System.out.println("4 : Gérer les comptes LBC");
-			System.out.println("5 : Gérer les titres et les textes");
-			System.out.println("6 : Afficher résumé des annonces en ligne");
-			System.out.println("7 : Revenir au menu de gestion des clients");
+			System.out.println("4 : Controler tous les comptes LBC");
+			System.out.println("5 : Gérer les comptes LBC");
+			System.out.println("6 : Gérer les titres et les textes");
+			System.out.println("7 : Afficher résumé des annonces en ligne");
+			System.out.println("8 : Revenir au menu de gestion des clients");
 			System.out.println();
 			try{
 				String saisie = readConsoleInput("^[1-7]$",
@@ -141,19 +144,23 @@ public class MoteurConsole {
 					addNewCompteLbc();
 					break;
 				case "3":
-					ControlCompteLbc();
+					choixDunCompte();
+					controlCompteLbc();
 					break;
 				case "4":
+					controlAllCompte();
+					break;
+				case "5":
 					gererCompteLbc();
 					continueBoucle = true;
 					break;
-				case "5":
+				case "6":
 					printManager.menuAddTextesTitre();
 					break;
-				case "6":
+				case "7":
 					printManager.menuSummary();
 					break;
-				case "7":
+				case "8":
 					continueBoucle = false;
 					break;
 				default:
@@ -184,12 +191,19 @@ public class MoteurConsole {
 
 	}
 
-
-	private void ControlCompteLbc() throws HomeException, MenuClientException {
-		System.out.println("!! Attention !!\n"
-				+ "Bien attendre le passage de la modération lbc avant de contrôler les comptes"
-				+ "\nFaire ce contrôle deux jours après le passage de la modération");
-		choixDunCompte();
+	private void controlAllCompte(){
+		Collection<CompteLbc> comptes = manager.getComptes().values();
+		for(CompteLbc compte : comptes){
+			manager.setCompteInUse(compte);
+			try{
+			controlCompteLbc();
+			}catch(HomeException ex){// est généré si un compte ne comporte pas d'annonces
+				ex.printStackTrace();
+			}
+		}
+	}
+	
+	private void controlCompteLbc() throws HomeException{
 		manager.createAgentLbc();
 		try{
 			manager.scanAddsOnLbc();
@@ -197,7 +211,11 @@ public class MoteurConsole {
 			System.out.println(" Il n'y a aucune annonces en ligne !! ");
 			System.out.println("Le nb d'annonces qui était en ligne est de : "+excep.getNbAddsOnline());
 			System.out.println("Le nb d'annonces qui était en attende modération est de : "+excep.getNbAddsEnAttenteMode());
-			throw new HomeException();
+			throw  new HomeException();
+		}finally {
+			System.out.println(" Le contrôle des annonces est fini");
+			manager.getAgentLbc().becomeInvisible();
+			manager.getAgentLbc().getDriver().quit();
 		}
 
 

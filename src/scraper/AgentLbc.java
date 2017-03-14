@@ -92,6 +92,48 @@ public class AgentLbc{
 		}
 	}
 
+	public void becomeInvisible(){
+		rebootBox();
+		effacerCookies();
+	}
+	
+	public void effacerCookies(){
+		File cookies = new File("C:\\Users\\alexandre\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\jt1gu6k.selenium\\cookies.sqlite");
+		if(cookies.delete()){
+			System.out.println("Cookies supprimés");
+		}
+		
+	}
+
+	public void rebootBox(){
+		allerSurCeLien("http://192.168.1.1");
+		wait(3000);
+		driver.findElement(By.id("PopupPassword")).sendKeys("15AEB2EA");
+		driver.findElement(By.id("bt_authenticate")).click();
+		allerSurCeLien("http://192.168.1.1/advConfigAccessType.html");
+		wait(3000);
+		driver.findElement(By.id("bt_refresh")).click();
+		//driver.findElement(By.id("wan_username")).clear();
+		//driver.findElement(By.id("wan_username")).sendKeys("cxd3whr");
+		//driver.findElement(By.id("wan_password")).clear();
+		//driver.findElement(By.id("wan_password")).sendKeys("99uwprp");
+		String statut;
+		Long start = System.currentTimeMillis();
+		Long duree= new Long(0);
+		do{
+			statut = driver.findElement(By.id("msgbox_title")).getAttribute("innerHTML");
+			duree=System.currentTimeMillis()-start;
+			if(duree>=60000){
+				System.out.println("dedans");
+				driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();
+				rebootBox();
+				return;
+			}
+		}while(!statut.equals("connecté"));
+		// déconnection
+		driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();		
+	}
+
 	// pour se connecter à un compte LBC
 	public void connect(){
 		allerSurCeLien("https://www.leboncoin.fr/");
@@ -180,7 +222,7 @@ public class AgentLbc{
 					addDao.save(addInPublication,false);
 				}
 			}else{
-				
+
 			}
 		}
 		System.out.println("-- Publication terminé --");
@@ -451,10 +493,16 @@ public class AgentLbc{
 	public List<Add> getBeforeModeration() {
 		return beforeModeration;
 	}
-	
+
 	public List<Add> getAddsWithCommuneNotRecognised() {
 		return addsWithCommuneNotRecognised;
 	}
+
+	public WebDriver getDriver() {
+		return driver;
+	}
+	
+	
 
 
 }
