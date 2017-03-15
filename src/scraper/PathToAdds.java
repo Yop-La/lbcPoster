@@ -2,8 +2,8 @@ package scraper;
 
 public enum PathToAdds {
 	
-	MINE(".\\documents pour robots\\"),  
-	CLIENT(".\\documents pour robots pour clients\\");
+	MINE("C:\\Users\\robot\\git\\lbcPoster\\documents pour robots\\"),  
+	CLIENT("C:\\Users\\robot\\git\\lbcPoster\\documents pour robots pour clients\\");
 	private String path;
 	
 	private PathToAdds(String path) {
