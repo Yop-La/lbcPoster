@@ -15,9 +15,9 @@ public abstract class JdbcRepository<T, ID extends Serializable> {
 
     private static final PGPoolingDataSource dataSource;
 
-    private static final String ID = "postgres"; // (Login)
+    private static final String ID = "jjnfqovi"; // (Login)
 
-    private static final String PASSWORD = "Bgrnht12p!"; // (Mot de passe)
+    private static final String PASSWORD = "PQ_UYR_ZoyWRJ7ddz7MxgdzaYF8zzq4X"; // (Mot de passe)
 
     // URL = "jdbc:postgresql://10.165.120.75:5432/" + ID;
 	// protected final static String URL = "jdbc:postgresql://sgbd-eleves.domensai.ecole:5432/"+ID;
@@ -25,12 +25,12 @@ public abstract class JdbcRepository<T, ID extends Serializable> {
         Driver.setLogLevel(Driver.DEBUG);
         dataSource = new PGPoolingDataSource();
         dataSource.setDataSourceName("A Data Source");
-        dataSource.setServerName("localhost");
+        dataSource.setServerName("horton.elephantsql.com");
         dataSource.setPortNumber(5432);
         dataSource.setDatabaseName(ID);
         dataSource.setUser(ID);
         dataSource.setPassword(PASSWORD);
-        dataSource.setMaxConnections(20);
+        dataSource.setMaxConnections(5);
     }
 
     public JdbcRepository() {

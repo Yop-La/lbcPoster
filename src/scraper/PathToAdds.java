@@ -2,9 +2,8 @@ package scraper;
 
 public enum PathToAdds {
 	
-	MINE("D:\\Dropbox\\HelloMentor\\Gestion Annonces\\automatisation dépôt annonces\\documents pour robots\\"),  
-	CLIENT("D:\\Dropbox\\HelloMentor\\Gestion Annonces\\automatisation dépôt annonces\\documents pour robots pour clients\\"),
-	MARTIN("C:\\img_lbc\\");
+	MINE(".\\documents pour robots\\"),  
+	CLIENT(".\\documents pour robots pour clients\\");
 	private String path;
 	
 	private PathToAdds(String path) {

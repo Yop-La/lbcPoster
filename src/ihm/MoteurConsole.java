@@ -214,8 +214,9 @@ public class MoteurConsole {
 			throw  new HomeException();
 		}finally {
 			System.out.println(" Le contrôle des annonces est fini");
-			manager.getAgentLbc().becomeInvisible();
 			manager.getAgentLbc().getDriver().quit();
+			manager.getAgentLbc().becomeInvisible();
+			
 		}
 
 

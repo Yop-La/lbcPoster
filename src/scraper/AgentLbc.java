@@ -93,6 +93,7 @@ public class AgentLbc{
 	}
 
 	public void becomeInvisible(){
+		effacerCookies();
 		rebootBox();
 		effacerCookies();
 	}
@@ -106,17 +107,22 @@ public class AgentLbc{
 	}
 
 	public void rebootBox(){
+		setUp();
+		allerSurCeLien("http://alexandreguillemine.fr/");
+		wait(3000);
 		allerSurCeLien("http://192.168.1.1");
 		wait(3000);
 		driver.findElement(By.id("PopupPassword")).sendKeys("15AEB2EA");
 		driver.findElement(By.id("bt_authenticate")).click();
 		allerSurCeLien("http://192.168.1.1/advConfigAccessType.html");
 		wait(3000);
+		if(driver.findElement(By.id("wan_username")).getAttribute("value").equals("")){
+			driver.findElement(By.id("wan_username")).sendKeys("cxd3whr");
+		}
+		if(driver.findElement(By.id("wan_password")).getAttribute("value").equals("")){
+			driver.findElement(By.id("wan_password")).sendKeys("99uwprp");
+		}
 		driver.findElement(By.id("bt_refresh")).click();
-		//driver.findElement(By.id("wan_username")).clear();
-		//driver.findElement(By.id("wan_username")).sendKeys("cxd3whr");
-		//driver.findElement(By.id("wan_password")).clear();
-		//driver.findElement(By.id("wan_password")).sendKeys("99uwprp");
 		String statut;
 		Long start = System.currentTimeMillis();
 		Long duree= new Long(0);
@@ -126,12 +132,14 @@ public class AgentLbc{
 			if(duree>=60000){
 				System.out.println("dedans");
 				driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();
+				driver.quit();
 				rebootBox();
 				return;
 			}
 		}while(!statut.equals("connecté"));
 		// déconnection
-		driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();		
+		driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();	
+		driver.quit();
 	}
 
 	// pour se connecter à un compte LBC
