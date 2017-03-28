@@ -14,6 +14,7 @@ import scraper.EtatAdd;
 import scraper.ResultsControl;
 import scraper.Texte;
 import scraper.Title;
+import scraper.TypeTexte;
 
 public class AddsSaver {
 	private List<Add> addsToControle;
@@ -183,6 +184,12 @@ public class AddsSaver {
 					textesCorrespondant = texteDao.findWithCorpsTexte(texteLbc);
 					int levelCorresp = texteLbc.getLevelCorrespondance();
 					int nbCorrespon = textesCorrespondant.size();
+					
+	
+
+
+					System.out.println(levelCorresp);
+					
 					if(nbCorrespon==0){
 						texteLbc.setLevelCorrespondance(levelCorresp-1);
 						System.out.println("Pas de correspondance de texte à la recherche n°"+nbRecherche);
@@ -195,19 +202,29 @@ public class AddsSaver {
 							}
 						}
 						System.out.println("Plus de 2 correspondance de texte à la recherche n°"+nbRecherche);
-						continueRecherche = false;
+						if(texteFrBdd.getLevenshteinDistanceBetweenLbcAndBdd()<=30){
+							System.out.println("Distance du texte retenu correcte :"+texteFrBdd.getLevenshteinDistanceBetweenLbcAndBdd());
+							continueRecherche = false;
+						}else{
+							System.out.println("Distance du texte retenu trop élevé :"+texteFrBdd.getLevenshteinDistanceBetweenLbcAndBdd());
+							System.out.println("On va le sauvegarder");
+							texteLbc.setTypeTexte(TypeTexte.valueOf("ajouteAuControle"));
+							texteLbc.setCorpsTexteInBase(texteLbc.getCorpsTexteOnLbc());
+							texteFrBdd = texteDao.save(texteLbc);
+							System.out.println("La ref du texte inséré est : "+texteFrBdd.getRefTexte());
+						}
+						
 					}else{
 						texteFrBdd = textesCorrespondant.get(0);
 						continueRecherche = false;
 					}
+
 					nbRecherche++;
 				}while(continueRecherche);
 			}catch(Exception exec){
 				
 			}
-			if(texteFrBdd.getLevenshteinDistanceBetweenLbcAndBdd()<=30){
-				texteReferenced=true;
-			}
+			texteReferenced=true;
 			if(texteReferenced & titleReferenced){
 				//add.getCommuneLink().onLine.setRefCommune(communeFrBdd.getRefCommune());
 				add.getTitle().setRefTitre(titreFrBdd.getRefTitre());

@@ -80,6 +80,7 @@ public class TitreDao extends JdbcRepository<Title, Integer>{
 				return retour;
 			}
 		}catch(SQLException e){
+			e.printStackTrace();
 			e.printStackTrace(MoteurConsole.ps);
 			return retour;
 		}

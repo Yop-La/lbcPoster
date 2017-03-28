@@ -23,6 +23,9 @@ import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.support.ui.Select;
 
 import dao.AddDao;
+import dao.JdbcRepository;
+import dao.TexteDao;
+import dao.TitreDao;
 import exception.AddSumitException;
 import exception.AgentLbcFailPublicationException;
 import exception.EchecSoumissionException;
@@ -35,6 +38,7 @@ public class AgentLbc{
 	private static int waitingTime = 1000;
 	private CompteLbc compteLBC;
 	private WebDriver driver;
+	private WebDriver driver1;
 	private List<Add> addsToPublish;
 	private List<Add> addsControled;
 	private List<Add> addsWithCommuneNotRecognised = new ArrayList<Add>();
@@ -55,6 +59,9 @@ public class AgentLbc{
 		addsControled = new ArrayList<Add>();
 	}
 
+	public AgentLbc() {
+
+	}
 
 
 	public List<Add> getAddsControled() {
@@ -93,53 +100,44 @@ public class AgentLbc{
 	}
 
 	public void becomeInvisible(){
-		effacerCookies();
 		rebootBox();
 		effacerCookies();
-	}
-	
+		JdbcRepository.connectToDataBase();
+		TitreDao testCo = new TitreDao();
+		System.out.println(testCo.getNbConnections());
+	} 
+
 	public void effacerCookies(){
-		File cookies = new File("C:\\Users\\alexandre\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\jt1gu6k.selenium\\cookies.sqlite");
+		File cookies = new File("C:\\Users\\robot\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\7xpmfyqn.default\\cookies.sqlite");
 		if(cookies.delete()){
 			System.out.println("Cookies supprimés");
 		}
-		
+
 	}
 
 	public void rebootBox(){
-		setUp();
-		allerSurCeLien("http://alexandreguillemine.fr/");
-		wait(3000);
+		setUp();		
 		allerSurCeLien("http://192.168.1.1");
-		wait(3000);
+		wait(4000);
 		driver.findElement(By.id("PopupPassword")).sendKeys("15AEB2EA");
 		driver.findElement(By.id("bt_authenticate")).click();
+		wait(2000);
 		allerSurCeLien("http://192.168.1.1/advConfigAccessType.html");
 		wait(3000);
-		if(driver.findElement(By.id("wan_username")).getAttribute("value").equals("")){
-			driver.findElement(By.id("wan_username")).sendKeys("cxd3whr");
-		}
-		if(driver.findElement(By.id("wan_password")).getAttribute("value").equals("")){
-			driver.findElement(By.id("wan_password")).sendKeys("99uwprp");
-		}
 		driver.findElement(By.id("bt_refresh")).click();
 		String statut;
-		Long start = System.currentTimeMillis();
-		Long duree= new Long(0);
 		do{
 			statut = driver.findElement(By.id("msgbox_title")).getAttribute("innerHTML");
-			duree=System.currentTimeMillis()-start;
-			if(duree>=60000){
-				System.out.println("dedans");
-				driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();
-				driver.quit();
-				rebootBox();
-				return;
-			}
 		}while(!statut.equals("connecté"));
+
 		// déconnection
 		driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();	
 		driver.quit();
+		try{
+		Thread.sleep(15000);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
 	}
 
 	// pour se connecter à un compte LBC
@@ -509,8 +507,8 @@ public class AgentLbc{
 	public WebDriver getDriver() {
 		return driver;
 	}
-	
-	
+
+
 
 
 }

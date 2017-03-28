@@ -10,5 +10,6 @@ public enum TypeTexte {
 	centTexteMartinSiteWeb,
 	unTexteMartinSiteWeb,
 	maud100TextesFrancais,
-	unTexteSoutienMailCourtAvecResa10jours;
+	unTexteSoutienMailCourtAvecResa10jours,
+	ajouteAuControle;
 }

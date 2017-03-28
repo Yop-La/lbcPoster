@@ -24,6 +24,7 @@ public class MoteurConsole {
 
 	ObjectManager manager;
 	PrintManager printManager;
+	String bilanControlCompte="";
 	public static PrintStream ps;
 
 	public static void main(String[] args) {
@@ -62,12 +63,13 @@ public class MoteurConsole {
 			System.out.println();
 			System.out.println("1 : Gerer les annonces d'un client");
 			System.out.println("2 : Ajouter un nouveau client");
+			System.out.println("3 : Devenir invisible");
 			System.out.println();
 			String saisie="";
 			try{
-				saisie = readConsoleInput("^[1-2]$",
+				saisie = readConsoleInput("^[1-3]$",
 						"Que voulez vous faire ? ",
-						"Votre réponse", " être un entier entre 1 et 2.");
+						"Votre réponse", " être un entier entre 1 et 3.");
 				// Enregistrement du choix de l'utilisateur dans numéro
 
 				switch (saisie) {
@@ -82,6 +84,11 @@ public class MoteurConsole {
 
 					addNewClient();
 
+					break;
+				case "3":
+					manager.createAgentLbc();
+					manager.getAgentLbc().becomeInvisible();
+					System.out.println("Vous êtes invisible");
 					break;
 				default:
 					System.out.println("Erreur de saisie");
@@ -131,9 +138,9 @@ public class MoteurConsole {
 			System.out.println("8 : Revenir au menu de gestion des clients");
 			System.out.println();
 			try{
-				String saisie = readConsoleInput("^[1-7]$",
+				String saisie = readConsoleInput("^[1-8]$",
 						"Que voulez vous faire ? ",
-						"Votre réponse", " être un entier entre 1 et 7");
+						"Votre réponse", " être un entier entre 1 et 8");
 				// Enregistrement du choix de l'utilisateur dans numéro
 				switch (saisie) {
 				// si le numéro, on va créer un doodle
@@ -195,28 +202,31 @@ public class MoteurConsole {
 		Collection<CompteLbc> comptes = manager.getComptes().values();
 		for(CompteLbc compte : comptes){
 			manager.setCompteInUse(compte);
+			bilanControlCompte = bilanControlCompte + "Fin de contrôle du Compte "+compte.getMail();
+			System.out.println(bilanControlCompte);
 			try{
-			controlCompteLbc();
+				controlCompteLbc();
 			}catch(HomeException ex){// est généré si un compte ne comporte pas d'annonces
-				ex.printStackTrace();
+				System.out.println("Le dernier compte controlé n'a aucune annonce");
 			}
 		}
+		System.out.println(bilanControlCompte);
+		bilanControlCompte="";
 	}
-	
+
 	private void controlCompteLbc() throws HomeException{
 		manager.createAgentLbc();
 		try{
 			manager.scanAddsOnLbc();
 		}catch(NoAddsOnlineException excep){
-			System.out.println(" Il n'y a aucune annonces en ligne !! ");
-			System.out.println("Le nb d'annonces qui était en ligne est de : "+excep.getNbAddsOnline());
-			System.out.println("Le nb d'annonces qui était en attende modération est de : "+excep.getNbAddsEnAttenteMode());
-			throw  new HomeException();
-		}finally {
-			System.out.println(" Le contrôle des annonces est fini");
+			bilanControlCompte = bilanControlCompte+'\n'+" Il n'y a aucune annonces en ligne !! ";
+			bilanControlCompte = bilanControlCompte+'\n'+"Le nb d'annonces qui était en ligne est de : "+excep.getNbAddsOnline();
+			bilanControlCompte = bilanControlCompte+'\n'+"Le nb d'annonces qui était en attende modération est de : "+excep.getNbAddsEnAttenteMode();
+			bilanControlCompte = bilanControlCompte+'\n'+" Le contrôle des annonces est fini\n\n";
+			System.out.println(bilanControlCompte);
 			manager.getAgentLbc().getDriver().quit();
 			manager.getAgentLbc().becomeInvisible();
-			
+			throw  new HomeException();
 		}
 
 
@@ -252,10 +262,14 @@ public class MoteurConsole {
 			System.out.println("---- Gestion de la correspondance des communes des annonces référencés en ligne entre la Bdd et LeBonCoin ----");
 			printManager.gererCorrepondanceCommunes(manager.getAddsSaver().getAddsUpdated());
 			System.out.println("Les annonces de lbc ont bien été mise à jour");
-			printManager.printResults();
+			String resultsToPrint = printManager.printResults();
+			bilanControlCompte = bilanControlCompte + resultsToPrint + "\n\n";
 		}else{
 			System.out.println("Les annonces sont pas prêtes à être sauvegardés");
 		}
+		System.out.println(" Le contrôle des annonces est fini");
+		manager.getAgentLbc().getDriver().quit();
+		manager.getAgentLbc().becomeInvisible();
 	}
 
 
@@ -315,6 +329,8 @@ public class MoteurConsole {
 		printManager.gererCorrepondanceCommunes(manager.getAddsPublieAvtMode());
 		// pour afficher le nb d'annones soumises
 		printManager.printBilanPublication();
+		manager.getAgentLbc().getDriver().quit();
+		manager.getAgentLbc().becomeInvisible();
 	}
 
 

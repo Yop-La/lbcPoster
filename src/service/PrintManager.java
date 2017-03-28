@@ -46,12 +46,13 @@ public class PrintManager extends JPanel{
 		this.objectManager = manager;
 	}
 
-	public void printResults(){
+	public String printResults(){
 		ResultsControl results = objectManager.getResults();
-		System.out.println("Nb d'annonces refusées par la modération : "+results.getNbRefus());
-		System.out.println("Nb d'annonces plus en ligne depuis dernier contrôle (périmé ou supprimé) : "+results.getNbSuppression());
-		System.out.println("Nb de nouvelles annonces qui était pas dans la bdd (pas ref pendant la publication) : "+results.getNbNewAddsOnline());
-		System.out.println("Nb d'annonces d'annonces toujours en ligne depuis dernier contrôle : "+results.getNbAddStillOnline());
+		String affichage = "Nb d'annonces refusées par la modération : "+results.getNbRefus();
+		affichage = affichage + "\n" + "Nb d'annonces plus en ligne depuis dernier contrôle (périmé ou supprimé) : "+results.getNbSuppression();
+		affichage = affichage + "\n" +"Nb de nouvelles annonces qui était pas dans la bdd (pas ref pendant la publication) : "+results.getNbNewAddsOnline();
+		affichage = affichage + "\n" +"Nb d'annonces d'annonces toujours en ligne depuis dernier contrôle : "+results.getNbAddStillOnline();
+		return(affichage);
 	}
 
 

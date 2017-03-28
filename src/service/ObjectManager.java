@@ -72,7 +72,7 @@ public class ObjectManager {
 		return results;
 	}
 
-	
+
 
 	public List<Commune> search(String nameCommuneInBdd){
 		List<Commune> communes = comDao.findAll(nameCommuneInBdd);
@@ -90,10 +90,10 @@ public class ObjectManager {
 			System.out.println("Le compte en utilisation est : "+compteInUse.getRefCompte());
 			compteLbcDao.updateDateDernierControl(compteInUse);
 			excep.setStatsOnAdds(addDao.putAllsAddsNotOnline(compteInUse));
-			
+
 			throw excep;
 		}
-		
+
 
 	}
 	public boolean isTexteAndTitleOnlineReferenced(){
@@ -108,17 +108,17 @@ public class ObjectManager {
 		addsSaver.classifyAddsOnlineWithTitleAndTextReferenced();
 		return(addsSaver.hasAddsWithMultipleReferenced());
 	}
-	
+
 	// doit être appelé qu'une fois et doit retourner forcément true
 	public boolean isReadyToSave(){
 		addsSaver.setSubmitCommuneAndRefAddForAddsOnlineReferenced();
 		addsSaver.saveAddsOnlineNotReferenced();
 		return(addsSaver.isReadyToSave());
 	}
-	
+
 	public void saveAddsFromScanOfLbc(){
-			addsSaver.updateAddsFromLbc();
-			results = addsSaver.getResults();
+		addsSaver.updateAddsFromLbc();
+		results = addsSaver.getResults();
 	}
 
 	public void genererEtPublier() {
@@ -176,7 +176,7 @@ public class ObjectManager {
 	}
 
 	public void setCompte(int identifiant){
-				compteInUse = comptes.get(identifiant);
+		compteInUse = comptes.get(identifiant);
 	}
 
 
@@ -216,7 +216,11 @@ public class ObjectManager {
 	}
 
 	public void createAgentLbc(){
-		agentLbc = new AgentLbc(compteInUse);
+		if(compteInUse != null){
+			agentLbc = new AgentLbc(compteInUse);
+		}else{
+			agentLbc = new AgentLbc();	
+		}
 	}
 
 	public CompteLbc getCompteInUse() {
@@ -226,7 +230,7 @@ public class ObjectManager {
 	public HashMap<Integer, CompteLbc> getComptes() {
 		return comptes;
 	}
-	
+
 	public List<CompteLbc> getValuesComptes() {
 		return new ArrayList<CompteLbc>(comptes.values());
 	}
@@ -369,7 +373,7 @@ public class ObjectManager {
 				return;
 			}
 		}
-		
+
 	}
 
 
@@ -385,10 +389,10 @@ public class ObjectManager {
 	public Client getClientInUse() {
 		return clientInUse;
 	}
-	
-	
-	
-	
+
+
+
+
 
 
 
