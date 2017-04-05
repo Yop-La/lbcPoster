@@ -16,6 +16,8 @@ public class CompteLbc {
 	private boolean disabled;
 	private Calendar dateOfDisabling;
 	private int refClient;
+	private boolean packBooster=false;
+	private Calendar finPack=null;
 	
 
 	public CompteLbc(String mail, String password) {
@@ -78,6 +80,16 @@ public class CompteLbc {
 			return("Date pas définie");
 		}
 	}
+	
+	public String getPrintableEndPack(){
+		if(this.finPack!=null){
+		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+		return(sdf.format(this.finPack.getTime()));
+		}else{
+			return("Date pas définie");
+		}
+	}
+	
 	public String getPrintableDateAvantPeremption(){
 		if(dateAvantPeremption!=null){
 		SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -93,6 +105,19 @@ public class CompteLbc {
 		}else{
 			return("Date pas définie");
 		}
+	}
+	
+	public boolean isPackBooster() {
+		return packBooster;
+	}
+	public void setPackBooster(boolean packBooster) {
+		this.packBooster = packBooster;
+	}
+	public Calendar getFinPack() {
+		return finPack;
+	}
+	public void setFinPack(Calendar finPack) {
+		this.finPack = finPack;
 	}
 	public String getPseudo() {
 		return pseudo;

@@ -151,7 +151,7 @@ public class MoteurConsole {
 					addNewCompteLbc();
 					break;
 				case "3":
-					choixDunCompte();
+					choixDunCompte(false);
 					controlCompteLbc();
 					break;
 				case "4":
@@ -192,13 +192,14 @@ public class MoteurConsole {
 		System.out.println("---------- MENU DE GESTION DES COMPTES -----------");
 		System.out.println();
 		printManager.printComptes();
-		choixDunCompte();
+		choixDunCompte(true);
 		printManager.menuGestionDesComptes();
 
 
 	}
 
 	private void controlAllCompte(){
+		bilanControlCompte="";
 		Collection<CompteLbc> comptes = manager.getComptes().values();
 		for(CompteLbc compte : comptes){
 			manager.setCompteInUse(compte);
@@ -211,7 +212,7 @@ public class MoteurConsole {
 			}
 		}
 		System.out.println(bilanControlCompte);
-		bilanControlCompte="";
+
 	}
 
 	private void controlCompteLbc() throws HomeException{
@@ -228,8 +229,7 @@ public class MoteurConsole {
 			manager.getAgentLbc().becomeInvisible();
 			throw  new HomeException();
 		}
-
-
+		manager.checkAndSaveBooster();
 		boolean texteAndTitleOnlineReferenced;
 		System.out.println("Vérification des correspondances entre les annonces en ligne et la bdd");
 		do{
@@ -289,7 +289,7 @@ public class MoteurConsole {
 
 	private void publishAdd() throws HomeException, MenuClientException {
 		System.out.println("------    MENU DE PUBLICATION DES ANNONCES   ------");
-		choixDunCompte();
+		choixDunCompte(false);
 		printManager.doYouWantToSaveAddIndd();
 		String nbAnnonces = readConsoleInput("^[1-9]\\d*$", 
 				"Entrez le nb d'annonces à publier",
@@ -521,8 +521,8 @@ public class MoteurConsole {
 	}
 
 
-	private void choixDunCompte() throws HomeException, MenuClientException {
-		String[] pourAffichageEtSaisieDesComptes = this.printManager.comptestoString();
+	private void choixDunCompte(boolean printDisabled) throws HomeException, MenuClientException {
+		String[] pourAffichageEtSaisieDesComptes = this.printManager.comptestoString(printDisabled);
 		String renouvellez;
 		String idCompte ;
 		System.out.println();

@@ -5,6 +5,7 @@ public enum TypeTitle {
 	elisabeth200TitresPourVenteMethodeBacMail,
 	centTitreMartinSiteWeb,
 	unTitreMartinSiteWeb,
-	maud100TitresFrancais;
+	maud100TitresFrancais,
+	ajoute_a_a_la_volee;
 	
 }

@@ -57,19 +57,21 @@ public class PrintManager extends JPanel{
 
 
 	// pour pouvoir afficher les comptes actifs
-	public String[] comptestoString(){
+	public String[] comptestoString(boolean printDisabled){
 		String[] retour = new String[2];
 		String affichage = "";
 		String controleSaisie = "";
 
 		for(int i=0; i<objectManager.getComptes().size(); i++){
 			CompteLbc compte = objectManager.getValuesComptes().get(i);
-			if(i==0){
-				affichage = compte.getRefCompte()+" : "+compte.getMail();
-				controleSaisie = "^"+compte.getRefCompte();
-			}else{
-				affichage = affichage+ "\n" + compte.getRefCompte()+" : "+compte.getMail();
-				controleSaisie = controleSaisie+"|"+compte.getRefCompte();
+			if(!compte.isDisabled() | printDisabled){
+				if(i==0){
+					affichage = compte.getRefCompte()+" : "+compte.getMail();
+					controleSaisie = "^"+compte.getRefCompte();
+				}else{
+					affichage = affichage+ "\n" + compte.getRefCompte()+" : "+compte.getMail();
+					controleSaisie = controleSaisie+"|"+compte.getRefCompte();
+				}
 			}
 		}
 		controleSaisie = controleSaisie + "$";
@@ -166,7 +168,7 @@ public class PrintManager extends JPanel{
 				"Votre réponse", "doit être "+toEnter);
 		return retour;
 	}
-	
+
 	public String readConsoleInput(String regex, String message, String variableASaisir, String format)
 			throws HomeException, MenuClientException {
 		Pattern p = Pattern.compile(regex);
@@ -822,6 +824,9 @@ public class PrintManager extends JPanel{
 					}
 				}
 				System.out.println();
+				if(compteLbc.isPackBooster()){
+					System.out.println("    Date péremption booster : "+compteLbc.getPrintableEndPack());
+				}
 
 
 				if(details){
@@ -1134,17 +1139,17 @@ public class PrintManager extends JPanel{
 		StatsOnAdds statsOnAdds = new StatsOnAdds(objectManager.getClientInUse());
 		System.out.println(" Stats moyenne par jours et par adds des adds en ligne : ");
 		for(Map.Entry<Integer, StatsOnCompte> entry : statsOnAdds.getStatsOnClientAddsOnline().entrySet()) {
-		    int refCompte = entry.getKey();
-		    StatsOnCompte statsOnCompte = entry.getValue();
-		    CompteLbc compte = objectManager.getComptes().get(refCompte);
-		    System.out.println("Stats du compte "+compte.getMail()+" : ");
-		    System.out.println("Nb d'annonces online : "+statsOnCompte.getNbAddsOnline());
-		    System.out.println("Nb jours moyens online par add : "+statsOnCompte.getNbJourMoyenOnline());
-		    System.out.println("Nb clic totales : "+statsOnCompte.getNbTotaleClickOnline());
-		    System.out.println("Nb mails totales : "+statsOnCompte.getNbTotaleMailOnline());
-		    System.out.println("Pop moyenne des annonces en ligne : "+statsOnCompte.getPopMoyenneAddOnline());
-		    System.out.println("Nb vues moyen par jour et par add pour 100 add : "+statsOnCompte.getNbVuesMoyenParJourOnline());
-		    System.out.println();
+			int refCompte = entry.getKey();
+			StatsOnCompte statsOnCompte = entry.getValue();
+			CompteLbc compte = objectManager.getComptes().get(refCompte);
+			System.out.println("Stats du compte "+compte.getMail()+" : ");
+			System.out.println("Nb d'annonces online : "+statsOnCompte.getNbAddsOnline());
+			System.out.println("Nb jours moyens online par add : "+statsOnCompte.getNbJourMoyenOnline());
+			System.out.println("Nb clic totales : "+statsOnCompte.getNbTotaleClickOnline());
+			System.out.println("Nb mails totales : "+statsOnCompte.getNbTotaleMailOnline());
+			System.out.println("Pop moyenne des annonces en ligne : "+statsOnCompte.getPopMoyenneAddOnline());
+			System.out.println("Nb vues moyen par jour et par add pour 100 add : "+statsOnCompte.getNbVuesMoyenParJourOnline());
+			System.out.println();
 		}
 	}
 
@@ -1246,14 +1251,14 @@ public class PrintManager extends JPanel{
 						"Votre réponse", " être oui ou non");
 			}while(confirmation.equals("non"));
 		}else if(choix.equals("ajouter")){
-			
+
 		}else if(choix.equals("ajouter avec symboles")){
 			String nbTextesToGenerate = readConsoleInput("^\\d+$",
 					"Saisir le nombre de textes à générer",
 					"Votre réponse", " être un entier");
 			textes = texteManager.generateTextOnlyWithSymbole(textes, Integer.parseInt(nbTextesToGenerate));
 		}
-		
+
 		String typeTexte = readConsoleInput("^\\S{3,}$",
 				"Saisir le type de texte à ajouter",
 				"Votre réponse", " faire au moins 3 caractères sans espace");

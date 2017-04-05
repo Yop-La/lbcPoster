@@ -200,7 +200,7 @@ public class ObjectManager {
 		if(afficherNumTel.equals("oui")){
 			numTelOnAdds=true;
 		}else{
-			numTel="0";
+			numTel="06";
 			for(int i=0;i<=9;i++){
 				int randomNum = ThreadLocalRandom.current().nextInt(0, 10);
 				numTel=numTel+randomNum;
@@ -388,6 +388,16 @@ public class ObjectManager {
 
 	public Client getClientInUse() {
 		return clientInUse;
+	}
+
+
+
+	public void checkAndSaveBooster() {
+		if(compteInUse.isPackBooster()){
+			CompteLbcDao compteDao = new CompteLbcDao();
+			compteDao.updatePackBooster(compteInUse);
+		}
+		
 	}
 
 

@@ -134,7 +134,7 @@ public class AgentLbc{
 		driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();	
 		driver.quit();
 		try{
-		Thread.sleep(15000);
+			Thread.sleep(15000);
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -369,6 +369,19 @@ public class AgentLbc{
 		if(driver.findElement(By.cssSelector(".value")).getAttribute("innerHTML").equals("0")){
 			throw new NoAddsOnlineException();
 		}
+		try{
+			WebElement boosterElement = driver.findElement(By.cssSelector("span.packInfoGrey:nth-child(2)"));
+			compteLBC.setPackBooster(true);
+			System.out.println();
+			int nbDaysBeforeEndBooster = Integer.parseInt(boosterElement.getAttribute("innerHTML").split(" ")[2]);
+			Calendar finPack = Calendar.getInstance();
+			finPack.add(Calendar.DAY_OF_YEAR, nbDaysBeforeEndBooster);
+			compteLBC.setFinPack(finPack);
+		}catch (org.openqa.selenium.NoSuchElementException exec) {
+			System.out.println("Ce compte n'a pas de pack booster");
+		}
+
+		
 
 		boolean allAddsControled = false;
 		List<Add> addsControled = new ArrayList<Add>();

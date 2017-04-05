@@ -32,8 +32,10 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 								+ "pseudo, "
 								+ "redirection, "
 								+ "date_derniere_activite, "
-								+ "ref_client) "
-								+ "values(?,?,0,NULL,NULL,FALSE,NULL,?)",Statement.RETURN_GENERATED_KEYS)){	
+								+ "ref_client,"
+								+ "pack_booster,"
+								+ "end_pack) "
+								+ "values(?,?,0,NULL,NULL,FALSE,NULL,?,FALSE,NULL)",Statement.RETURN_GENERATED_KEYS)){	
 					statemennt.setString(1, entity.getMail());
 					statemennt.setString(2, entity.getPassword());
 					statemennt.setInt(3, entity.getRefClient());
@@ -179,6 +181,25 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 		}
 
 	}
+	
+	public void updatePackBooster(CompteLbc compteInUse) {
+		try(Connection maConnection = getConnection()){
+			try(PreparedStatement statement = 
+					maConnection.prepareStatement("update compte_lbc "
+							+ " set pack_booster = ?, "
+							+ " end_pack = ? "
+							+ " where ref_compte = ?")){
+				statement.setBoolean(1, compteInUse.isPackBooster());
+				statement.setDate(2, new java.sql.Date(compteInUse.getFinPack().getTime().getTime()));
+				statement.setInt(3, compteInUse.getRefCompte());
+				statement.executeUpdate();
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
+
+	}
+	
 
 	public HashMap<Integer, CompteLbc> findAll(Client clientInUse) {
 		HashMap<Integer, CompteLbc> retour = new HashMap<Integer, CompteLbc>();
@@ -298,7 +319,9 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 							+ "date_avant_peremption,  "
 							+ "disabled,  "
 							+ "date_of_disabling,  "
-							+ "ref_client  "
+							+ "ref_client, "
+							+ "pack_booster,"
+							+ "end_pack  "
 							+ "from compte_lbc "
 							+ " where ref_client = ?")){
 				statement.setInt(1, clientInUse.getRefClient());
@@ -321,7 +344,7 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 
 						Calendar dateDerniereActivite = Calendar.getInstance();
 						if(results.getDate(8)!=null){
-							dateDernierControle.setTime(results.getDate(8));
+							dateDerniereActivite.setTime(results.getDate(8));
 							compteLbc.setdateDerniereActivite(dateDerniereActivite);
 						}
 
@@ -337,6 +360,15 @@ public class CompteLbcDao extends JdbcRepository<CompteLbc, Integer> {
 							dateOfDisabling.setTime(results.getDate(11));
 							compteLbc.setDateOfDisabling(dateOfDisabling);
 						}
+						
+						compteLbc.setPackBooster(results.getBoolean(13));
+						
+						Calendar dateEndPack = Calendar.getInstance();
+						if(results.getDate(14)!=null){
+							dateEndPack.setTime(results.getDate(14));
+							compteLbc.setFinPack(dateEndPack);
+						}
+						
 						compteLbc.setRefClient(clientInUse.getRefClient());
 						retour.put(compteLbc.getRefCompte(),compteLbc);
 					}
