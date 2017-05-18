@@ -16,6 +16,7 @@ import dao.CompteLbcDao;
 import dao.ResumeDao;
 import dao.TexteDao;
 import dao.TitreDao;
+import exception.GenerationTexteException;
 import exception.HomeException;
 import exception.MenuClientException;
 import scraper.Add;
@@ -1196,7 +1197,11 @@ public class PrintManager extends JPanel{
 				addNewTitreInBdd();
 				break;
 			case "2":
-				addNewTextInBdd();
+				try{
+					addNewTextInBdd();
+				}catch(GenerationTexteException exep){
+					exep.printStackTrace();
+				}
 				break;
 			case "3":
 				continueBoucle=false;
@@ -1229,7 +1234,7 @@ public class PrintManager extends JPanel{
 
 	}
 
-	private void addNewTextInBdd() throws HomeException, MenuClientException{
+	private void addNewTextInBdd() throws HomeException, MenuClientException, GenerationTexteException{
 		System.out.println("------    AJOUT DE TEXTES À LA BDD   ------");
 		String choix = readConsoleInput("^generer|ajouter|ajouter avec symboles$",
 				"Voulez vous générer puis ajouter des textes ou juste ajouter des textes ou compléter avec des symboles ? ",
@@ -1245,7 +1250,7 @@ public class PrintManager extends JPanel{
 					"Votre réponse", " être un entier");
 			String confirmation="non";
 			do{
-				textes = texteManager.generateTextes(textes, Integer.parseInt(nbTextesToGenerate));
+				textes = texteManager.generateTextesV2(textes, Integer.parseInt(nbTextesToGenerate));
 				confirmation = readConsoleInput("^oui|non$",
 						"Est ce que la génération dex textes vous convient ?",
 						"Votre réponse", " être oui ou non");

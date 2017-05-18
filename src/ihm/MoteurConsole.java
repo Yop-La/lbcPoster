@@ -2,6 +2,7 @@ package ihm;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Scanner;
@@ -135,12 +136,13 @@ public class MoteurConsole {
 			System.out.println("5 : Gérer les comptes LBC");
 			System.out.println("6 : Gérer les titres et les textes");
 			System.out.println("7 : Afficher résumé des annonces en ligne");
-			System.out.println("8 : Revenir au menu de gestion des clients");
+			System.out.println("8 : Se connecter à un compte");
+			System.out.println("9 : Revenir au menu de gestion des clients");
 			System.out.println();
 			try{
-				String saisie = readConsoleInput("^[1-8]$",
+				String saisie = readConsoleInput("^[1-9]$",
 						"Que voulez vous faire ? ",
-						"Votre réponse", " être un entier entre 1 et 8");
+						"Votre réponse", " être un entier entre 1 et 9");
 				// Enregistrement du choix de l'utilisateur dans numéro
 				switch (saisie) {
 				// si le numéro, on va créer un doodle
@@ -168,6 +170,10 @@ public class MoteurConsole {
 					printManager.menuSummary();
 					break;
 				case "8":
+					choixDunCompte(false);
+					connectToCompte();
+					break;
+				case "9":
 					continueBoucle = false;
 					break;
 				default:
@@ -213,6 +219,19 @@ public class MoteurConsole {
 		}
 		System.out.println(bilanControlCompte);
 
+	}
+	private void connectToCompte(){
+		manager.createAgentLbc();
+		manager.connect();
+		System.out.println("Entrez qqch pour vous déconnecter");
+		try {
+			System.in.read();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		manager.getAgentLbc().getDriver().quit();
+		manager.getAgentLbc().becomeInvisible();
 	}
 
 	private void controlCompteLbc() throws HomeException{
@@ -371,8 +390,9 @@ public class MoteurConsole {
 	}
 
 
-	private void selectionCommuneXlsx() {
-		// TODO Auto-generated method stub
+	private void selectionCommuneXlsx() throws HomeException, MenuClientException {
+		String path = selectPath("communes");
+		manager.setPathToAdds(path);
 
 	}
 

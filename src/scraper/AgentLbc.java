@@ -114,7 +114,6 @@ public class AgentLbc{
 		}
 
 	}
-
 	public void rebootBox(){
 		setUp();		
 		allerSurCeLien("http://192.168.1.1");
@@ -124,7 +123,7 @@ public class AgentLbc{
 		wait(2000);
 		allerSurCeLien("http://192.168.1.1/advConfigAccessType.html");
 		wait(3000);
-		driver.findElement(By.id("bt_refresh")).click();
+		driver.findElement(By.id("bt_save")).click();
 		String statut;
 		do{
 			statut = driver.findElement(By.id("msgbox_title")).getAttribute("innerHTML");
@@ -254,7 +253,7 @@ public class AgentLbc{
 		setValue(driver.findElement(By.id("body")), addInPublication.getTexte().getCorpsTexteForPublication());
 
 		// saisie de l'image
-		wait(waitingTime);
+		wait(waitingTime+2000);
 		driver.findElement(By.id("image0")).sendKeys(addInPublication.getImage().getAbsolutePath());
 		// saisie du lieu
 		wait(waitingTime);

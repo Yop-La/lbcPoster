@@ -78,10 +78,14 @@ public class ObjectManager {
 		List<Commune> communes = comDao.findAll(nameCommuneInBdd);
 		return communes;
 	}
-
-	public void scanAddsOnLbc() throws NoAddsOnlineException{// pour récupérer les annonces telles qu'elles sont sur lbc
+	
+	public void connect(){
 		agentLbc.setUp();
 		agentLbc.connect();
+	}
+
+	public void scanAddsOnLbc() throws NoAddsOnlineException{// pour récupérer les annonces telles qu'elles sont sur lbc
+		connect();
 		try{
 			this.addsFromLbc = agentLbc.scanAddsOnLbc();
 		}catch(NoAddsOnlineException excep){
@@ -126,8 +130,7 @@ public class ObjectManager {
 		addsGenerator.setImage();
 		addsGenerator.generateAdds();
 		agentLbc.setAddsToPublish(addsGenerator.getaddsProduced());
-		agentLbc.setUp();
-		agentLbc.connect();
+		connect();
 		agentLbc.goToFormDepot();
 		try{
 			addsPublieAvtMode = agentLbc.publish();

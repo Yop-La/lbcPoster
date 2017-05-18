@@ -6,6 +6,8 @@ public enum TypeTitle {
 	centTitreMartinSiteWeb,
 	unTitreMartinSiteWeb,
 	maud100TitresFrancais,
-	ajoute_a_a_la_volee;
+	titresQuentinLc120coaching,
+	ajoute_a_a_la_volee,
+	aimeriCharon60;
 	
 }

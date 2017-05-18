@@ -11,5 +11,9 @@ public enum TypeTexte {
 	unTexteMartinSiteWeb,
 	maud100TextesFrancais,
 	unTexteSoutienMailCourtAvecResa10jours,
+	textesQuentinLc120coaching,
+	textesQuentinLc120coachingVariees,
+	v2TextesQuentinLc120coaching,
+	aimeriCharon125,
 	ajouteAuControle;
 }
