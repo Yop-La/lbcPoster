@@ -19,6 +19,7 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.support.ui.Select;
 
@@ -92,7 +93,7 @@ public class AgentLbc{
 		try{
 			driver = new FirefoxDriver();
 			driver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
-			driver.manage().timeouts().pageLoadTimeout(50, TimeUnit.SECONDS);
+			driver.manage().timeouts().pageLoadTimeout(5, TimeUnit.SECONDS);
 		}catch(Exception excep){
 			System.out.println("Problème au moment du setup");
 			excep.printStackTrace();
@@ -101,17 +102,20 @@ public class AgentLbc{
 
 	public void becomeInvisible(){
 		rebootBox();
-		effacerCookies();
+	//	effacerCookies();
+		driver.quit();
 		JdbcRepository.connectToDataBase();
 		TitreDao testCo = new TitreDao();
 		System.out.println(testCo.getNbConnections());
 	} 
 
 	public void effacerCookies(){
-		File cookies = new File("C:\\Users\\robot\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\7xpmfyqn.default\\cookies.sqlite");
-		if(cookies.delete()){
+		driver.manage().deleteAllCookies();
+//		File cookies = new File("C:\\Users\\robot\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cookies");
+//		File cookiesJournal = new File("C:\\Users\\robot\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cookies-journal");
+//		if(cookies.delete() & cookiesJournal.delete()){
 			System.out.println("Cookies supprimés");
-		}
+//		}
 
 	}
 	public void rebootBox(){
@@ -131,9 +135,8 @@ public class AgentLbc{
 
 		// déconnection
 		driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();	
-		driver.quit();
 		try{
-			Thread.sleep(15000);
+			Thread.sleep(50000);
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -141,32 +144,33 @@ public class AgentLbc{
 
 	// pour se connecter à un compte LBC
 	public void connect(){
-		allerSurCeLien("https://www.leboncoin.fr/");
+		allerSurCeLien("https://compteperso.leboncoin.fr/account/index.html");
 		wait(2000);
-		driver.findElement(By.xpath("//header[@id='header']/section/section/aside/button")).click();
-		driver.findElement(By.name("st_username")).click();
+		//driver.findElement(By.xpath("//header[@id='header']/section/section/aside/button")).click();
+		System.out.println(compteLBC.getMail());
 		driver.findElement(By.name("st_username")).sendKeys(compteLBC.getMail());
 		driver.findElement(By.name("st_passwd")).sendKeys(compteLBC.getPassword());
-		driver.findElement(By.xpath("//input[@value='Se connecter']")).click(); 
+		driver.findElement(By.cssSelector("#connect_button")).click(); 
 		wait(2000);
 	}
 
 	private void allerSurCeLien(String lien) {
-		boolean surLeLien = false;
-		do{
+		boolean pageCharge = false;
 			try{
-				driver.get(lien);
-				surLeLien=true;
-			}catch(Exception ex){
-				surLeLien=false;
+				driver.navigate().to(lien);
+				pageCharge = true;
+			}catch(TimeoutException ex){
+				System.out.println("Chargement supplémentaire de la page : "+lien);
+				driver.navigate().back();
+				driver.navigate().forward();
+			}finally{
+				driver.manage().timeouts().pageLoadTimeout(30, TimeUnit.SECONDS);
 			}
-		}while(!surLeLien);
-
 	}
 
 	public void goToFormDepot(){
 		driver.findElement(By.cssSelector(".value"));
-		driver.findElement(By.linkText("Déposer une annonce")).click();
+		driver.findElement(By.cssSelector("#nav_main > li.deposer > a")).click();
 		wait(2000);
 	}
 
@@ -380,7 +384,7 @@ public class AgentLbc{
 			System.out.println("Ce compte n'a pas de pack booster");
 		}
 
-		
+
 
 		boolean allAddsControled = false;
 		List<Add> addsControled = new ArrayList<Add>();
