@@ -198,7 +198,7 @@ public class ObjectManager {
 		this.nbAddsToPublish = nbAddsToPublish;
 	}
 
-	public void createAgentLbc(int nbAddsToPublish, String afficherNumTel, String numTel, String category){
+	public void createAgentLbc(int nbAddsToPublish, String afficherNumTel, String numTel, String category, String prix){
 		boolean numTelOnAdds = false;
 		if(afficherNumTel.equals("oui")){
 			numTelOnAdds=true;
@@ -213,6 +213,12 @@ public class ObjectManager {
 		paras.setAfficherNum(numTelOnAdds);
 		paras.setNbDannoncesAPublier(nbAddsToPublish);
 		paras.setNumTelephone(numTel);
+		if(prix.equals("oui")){
+			paras.setPrix(true);
+		}else {
+			paras.setPrix(false);
+		}
+		
 		System.out.println(category);
 		paras.setAddCategory(AddCategory.valueOf(category));
 		agentLbc = new AgentLbc(compteInUse, saveAddToSubmitLbcInBase, paras);

@@ -4,6 +4,13 @@ public class ParametresPublication {
 	private boolean afficherNum;
 	private String numTelephone;
 	private int nbDannoncesAPublier;
+	private boolean prix;
+	public boolean isPrix() {
+		return prix;
+	}
+	public void setPrix(boolean prix) {
+		this.prix = prix;
+	}
 	private AddCategory addCategory;
 	
 	public boolean isAfficherNum() {

@@ -339,9 +339,14 @@ public class MoteurConsole {
 				"Votre réponse", 
 				"être une chaine de caractères d'au moins 3 lettres");
 		
+		String prix = readConsoleInput("^oui|non$", 
+				"Voulez vous mettre un prix",
+				"Votre réponse", 
+				" être oui ou non");
+		
 		manager.getCompteInUse().setPrenom(prenom);
 		
-		manager.createAgentLbc(Integer.parseInt(nbAnnonces), afficherNumTel, numTel, category);
+		manager.createAgentLbc(Integer.parseInt(nbAnnonces), afficherNumTel, numTel, category, prix);
 		manager.createAddsGenerator();
 		selectionTitres();
 		selectionTextes();

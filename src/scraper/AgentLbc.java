@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -289,6 +290,14 @@ public class AgentLbc{
 		addInPublication.getTexte().setCorpsTexteForPublication(addInPublication.getTexte().getCorpsTexteForPublication().replaceAll("Alexandre", compteLBC.getPrenom()));
 		setValue(driver.findElement(By.id("body")), addInPublication.getTexte().getCorpsTexteForPublication());
 
+		// saisie du prix
+		if(paras.isPrix()) {
+			wait(waitingTime);
+			int randomNum = ThreadLocalRandom.current().nextInt(20, 30);
+			driver.findElement(By.id("price")).sendKeys(randomNum+"");
+		}
+		
+		
 		// saisie de l'image
 		wait(waitingTime+2000);
 		driver.findElement(By.id("image0")).sendKeys(addInPublication.getImage().getAbsolutePath());
