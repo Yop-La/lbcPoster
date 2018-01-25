@@ -213,6 +213,7 @@ public class ObjectManager {
 		paras.setAfficherNum(numTelOnAdds);
 		paras.setNbDannoncesAPublier(nbAddsToPublish);
 		paras.setNumTelephone(numTel);
+		System.out.println(category);
 		paras.setAddCategory(AddCategory.valueOf(category));
 		agentLbc = new AgentLbc(compteInUse, saveAddToSubmitLbcInBase, paras);
 		setNbAddsToPublish(nbAddsToPublish);

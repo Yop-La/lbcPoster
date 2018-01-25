@@ -11,6 +11,7 @@ public enum TypeTitle {
 	etePasOnlineCannelle142,
 	diabolo30,
 	aimeriCharon60,
-	pasEnLigne;
+	pasEnLigne,
+	SacMainCuirMarronGrand;
 	
 }

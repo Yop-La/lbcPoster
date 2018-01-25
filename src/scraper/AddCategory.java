@@ -4,7 +4,8 @@ public enum AddCategory {
 
 	CoursParticuliers("Cours particuliers"),
 	Animaux("Animaux"),
-	Prestations("Prestations de services");
+	Prestations("Prestations de services"),
+	AccessoiresBagagerie("Accessoires & Bagagerie");
 	private String category;
 
 	private AddCategory(String category) {

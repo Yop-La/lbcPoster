@@ -22,5 +22,6 @@ public enum TypeTexte {
 	etePasOnlineDeuxModeles,
 	alexInge,
 	alexPasIngeEte,
-	ajouteAuControle;
+	ajouteAuControle,
+	SacMainCuirMarronGrand;
 }

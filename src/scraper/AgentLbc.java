@@ -21,6 +21,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.support.ui.Select;
 
 import dao.AddDao;
@@ -91,7 +92,9 @@ public class AgentLbc{
 
 	public void setUp(){
 		try{
-			driver = new FirefoxDriver();
+			FirefoxProfile profile = new FirefoxProfile();
+			profile.setPreference(FirefoxProfile.ALLOWED_HOSTS_PREFERENCE,"localhost");
+			driver = new FirefoxDriver(profile);
 			driver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
 			driver.manage().timeouts().pageLoadTimeout(5, TimeUnit.SECONDS);
 		}catch(Exception excep){

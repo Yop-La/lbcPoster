@@ -329,10 +329,10 @@ public class MoteurConsole {
 					"doit être une chaîne de 10 caractères sans espace commencant par 0");
 		}
 
-		String category = readConsoleInput("^CoursParticuliers|Prestations|Animaux$", 
-				"Sélectionner la catégorie à utiliser (Prestations ou CoursParticuliers ou Animaux)",
+		String category = readConsoleInput("^CoursParticuliers|Prestations|Animaux|AccessoiresBagagerie$", 
+				"Sélectionner la catégorie à utiliser (Prestations ou CoursParticuliers ou Animaux ou AccessoiresBagagerie)",
 				"Votre réponse", 
-				"être Prestations ou CoursParticuliers ou Animaux");
+				"être Prestations ou CoursParticuliers ou Animaux ou AccessoiresBagagerie");
 
 		String prenom = readConsoleInput("^\\S{3,}$", 
 				"Entrez le prenom à mettre dans les annonces",
@@ -450,8 +450,8 @@ public class MoteurConsole {
 		String renouvellez;
 		String path;
 		do{
-			path = readConsoleInput("^MINE$|CLIENT|MARTIN", "Saisir le répertoire des annonces à utiliser pour les "+elementsAdds,
-					"Votre réponse", "doit être MINE ou CLIENT ou MARTIN");
+			path = readConsoleInput("^MINE$|CLIENT|MARTIN|ECOM", "Saisir le répertoire des annonces à utiliser pour les "+elementsAdds,
+					"Votre réponse", "doit être MINE ou CLIENT ou MARTIN ou ECOM");
 			renouvellez = readConsoleInput("^oui|non", "Est ce bien ce répertoire : "+ path +""
 					+ " que vous voulez utiliser ? ",
 					"Votre réponse", "doit être oui ou non");
