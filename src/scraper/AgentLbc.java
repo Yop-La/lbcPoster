@@ -102,7 +102,7 @@ public class AgentLbc{
 
 	public void becomeInvisible(){
 		rebootBox();
-	//	effacerCookies();
+		effacerCookies();
 		driver.quit();
 		JdbcRepository.connectToDataBase();
 		TitreDao testCo = new TitreDao();
@@ -110,12 +110,14 @@ public class AgentLbc{
 	} 
 
 	public void effacerCookies(){
-		driver.manage().deleteAllCookies();
-//		File cookies = new File("C:\\Users\\robot\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cookies");
-//		File cookiesJournal = new File("C:\\Users\\robot\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cookies-journal");
-//		if(cookies.delete() & cookiesJournal.delete()){
-			System.out.println("Cookies supprimés");
-//		}
+		File cookies = new File("C:\\Users\\robot\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\7xpmfyqn.default\\cookies.sqlite");
+		try{
+			if(cookies.delete()){
+				System.out.println("Cookies supprimés");
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
 
 	}
 	public void rebootBox(){
@@ -136,7 +138,7 @@ public class AgentLbc{
 		// déconnection
 		driver.findElement(By.xpath("//*[@id=\"logout_link\"]/span")).click();	
 		try{
-			Thread.sleep(50000);
+			Thread.sleep(70000);
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -156,16 +158,16 @@ public class AgentLbc{
 
 	private void allerSurCeLien(String lien) {
 		boolean pageCharge = false;
-			try{
-				driver.navigate().to(lien);
-				pageCharge = true;
-			}catch(TimeoutException ex){
-				System.out.println("Chargement supplémentaire de la page : "+lien);
-				driver.navigate().back();
-				driver.navigate().forward();
-			}finally{
-				driver.manage().timeouts().pageLoadTimeout(30, TimeUnit.SECONDS);
-			}
+		try{
+			driver.navigate().to(lien);
+			pageCharge = true;
+		}catch(TimeoutException ex){
+			System.out.println("Chargement supplémentaire de la page : "+lien);
+			driver.navigate().back();
+			driver.navigate().forward();
+		}finally{
+			driver.manage().timeouts().pageLoadTimeout(30, TimeUnit.SECONDS);
+		}
 	}
 
 	public void goToFormDepot(){
@@ -246,7 +248,34 @@ public class AgentLbc{
 
 		// sélection de la catégorie
 		new Select(driver.findElement(By.id("category"))).selectByVisibleText(paras.getAddCategory().getCategory());
+		
+		// si catégorie est "Animaux"
+		if(paras.getAddCategory().equals(AddCategory.Animaux)){
 
+			//Sélection du type d'offre
+			new Select(driver.findElement(By.id("animal_type"))).selectByVisibleText("Chiens & Chats");
+			
+			// sélection de "Oui" pour le vaccin
+			driver.findElement(By.id("vaccinated_animal_y")).click();
+			wait(2000);
+			// sélection de "Saillie" pour la nature de l'offre 
+			new Select(driver.findElement(By.id("animal_offer_nature"))).selectByVisibleText("Saillie");
+			
+			// sélection de LOF/LOOF pour la catégorie "Appartenance à une race"
+			new Select(driver.findElement(By.id("animal_race"))).selectByVisibleText("LOF / LOOF");
+			
+			// sélection de "Plus de 8 semaines" pour l'âge
+			new Select(driver.findElement(By.id("animal_age"))).selectByVisibleText("Adulte");
+
+			// Sélection de "tatoué"
+			driver.findElement(By.id("tattooed_animal")).click();			
+			
+			driver.findElement(By.id("animal_litter")).sendKeys("2");
+			driver.findElement(By.id("animal_identification")).sendKeys("2fug889");
+			
+			
+		}
+		
 		// saisie du titre
 		driver.findElement(By.id("subject")).click();
 		wait(waitingTime);
@@ -254,6 +283,7 @@ public class AgentLbc{
 		// saisie du texte
 		driver.findElement(By.id("subject")).click();
 		wait(waitingTime);
+		addInPublication.getTexte().setCorpsTexteForPublication(addInPublication.getTexte().getCorpsTexteForPublication().replaceAll("Alexandre", compteLBC.getPrenom()));
 		setValue(driver.findElement(By.id("body")), addInPublication.getTexte().getCorpsTexteForPublication());
 
 		// saisie de l'image

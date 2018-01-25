@@ -329,12 +329,18 @@ public class MoteurConsole {
 					"doit être une chaîne de 10 caractères sans espace commencant par 0");
 		}
 
-		String category = readConsoleInput("^CoursParticuliers|Prestations$", 
-				"Sélectionner la catégorie à utiliser (Prestations ou CoursParticuliers)",
+		String category = readConsoleInput("^CoursParticuliers|Prestations|Animaux$", 
+				"Sélectionner la catégorie à utiliser (Prestations ou CoursParticuliers ou Animaux)",
 				"Votre réponse", 
-				"être Prestations ou CoursParticuliers");
+				"être Prestations ou CoursParticuliers ou Animaux");
 
-
+		String prenom = readConsoleInput("^\\S{3,}$", 
+				"Entrez le prenom à mettre dans les annonces",
+				"Votre réponse", 
+				"être une chaine de caractères d'au moins 3 lettres");
+		
+		manager.getCompteInUse().setPrenom(prenom);
+		
 		manager.createAgentLbc(Integer.parseInt(nbAnnonces), afficherNumTel, numTel, category);
 		manager.createAddsGenerator();
 		selectionTitres();
@@ -561,6 +567,7 @@ public class MoteurConsole {
 					"Votre réponse", "doit être oui ou non");
 		}while(renouvellez.equals("non"));
 		manager.setCompte(Integer.parseInt(idCompte));
+		
 	}
 
 

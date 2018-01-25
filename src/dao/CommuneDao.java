@@ -202,8 +202,9 @@ public class CommuneDao extends JdbcRepository<Commune, Integer>{
 		String requete ="SELECT code_dep, code_commune, nom_commune, pop_totale, code_reg, nom_reg, ref_commune, code_postal "
 				+ " from communes"
 				+ " where ref_commune not in (select ref_commune from adds_lbc "
-								+ " where etat in('onLine', 'enAttenteModeration') and ref_compte in"
-										+ " (select ref_compte from compte_lbc where ref_client = ?))";
+								+ " where etat in('onLine', 'enAttenteModeration') "
+								+ "and ref_compte in (select ref_compte from compte_lbc where ref_client = ?))"
+								+ "and code_dep not like '13'";
 		if(critSelecVille.getBornInfPop()!=-1){
 			requete = requete + " and pop_totale >= ?";
 		}

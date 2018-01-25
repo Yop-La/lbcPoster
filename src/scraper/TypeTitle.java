@@ -8,6 +8,9 @@ public enum TypeTitle {
 	maud100TitresFrancais,
 	titresQuentinLc120coaching,
 	ajoute_a_a_la_volee,
-	aimeriCharon60;
+	etePasOnlineCannelle142,
+	diabolo30,
+	aimeriCharon60,
+	pasEnLigne;
 	
 }

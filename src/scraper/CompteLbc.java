@@ -18,6 +18,7 @@ public class CompteLbc {
 	private int refClient;
 	private boolean packBooster=false;
 	private Calendar finPack=null;
+	private String prenom="Alexandre";
 	
 
 	public CompteLbc(String mail, String password) {
@@ -220,5 +221,11 @@ public class CompteLbc {
 	}
 	public void setRefClient(int refClient) {
 		this.refClient = refClient;
+	}
+	public String getPrenom() {
+		return prenom;
+	}
+	public void setPrenom(String prenom) {
+		this.prenom = prenom;
 	}	
 }
